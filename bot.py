@@ -239,7 +239,7 @@ print("Starting Bot")
 @client.event
 async def on_ready():
     print(f'Logged on as {client.user}')
-    await client.change_presence(activity = discord.Game(name = 'Use "!market help" for a list of commands'))
+    await client.change_presence(activity = discord.Game(name = 'Use "!gb help" for a list of commands'))
 
 @client.event
 async def on_message(message):
@@ -249,7 +249,7 @@ async def on_message(message):
     if message.content.startswith('!market'):
         splitcontent = message.content.split()
         if len(splitcontent) <= 1 or splitcontent[1].lower() not in COMMAND_SET:
-            await message.channel.send('Invalid command, for a list of commands, use !market help')
+            await message.channel.send('Invalid command, for a list of commands, use !gb help')
             return
         else:
             cmd = splitcontent[1].lower()
