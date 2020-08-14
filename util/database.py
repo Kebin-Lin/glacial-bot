@@ -5,6 +5,21 @@ DATABASE_URL = os.environ['DATABASE_URL']
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 cursor = conn.cursor()
 
+def reset():
+    cursor.execute("DELETE FROM toConfirm")
+    cursor.execute("DELETE FROM scores")
+    conn.commit()
+
+def setScore(userID, score):
+    cursor.execute('''
+        INSERT INTO scores (userID, score)
+        VALUES (%s, %s)
+        ON CONFLICT (userID)
+        DO
+            UPDATE SET score = EXCLUDED.score
+    ''', (userID, score,))
+    conn.commit()
+
 def confirmScore(userID):
     cursor.execute("SELECT score FROM toConfirm WHERE userID = %s LIMIT 1", (userID,))
     if cursor.rowcount == 0:

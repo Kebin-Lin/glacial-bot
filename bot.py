@@ -53,7 +53,11 @@ async def reportFunc(message, splitcontent):
     await message.add_reaction('✅')
 
 async def confirmFunc(message, splitcontent):
-    #<Some check for role>
+    leadermanrole = discord.utils.find(lambda r: r.name == "Leader Man", message.guild.roles)
+    jrrole = discord.utils.find(lambda r: r.name == "Jrs", message.guild.roles)
+    if not (leadermanrole in message.author.roles or jrrole in message.author.roles):
+        await message.channel.send('You do not have the role for this command')
+        return
 
     embed = {
         "color" : 7855479,
@@ -218,6 +222,39 @@ async def leaderboardFunc(message, splitcontent):
                     setupLeaderboard(embed, scores)
                     await sentMsg.edit(embed = discord.Embed.from_dict(embed))
 
+async def resetFunc(message, splitcontent):
+    role = discord.utils.find(lambda r: r.name == "Leader Man", message.guild.roles)
+    if role in message.author.roles:
+        database.reset()
+        await message.add_reaction('✅')
+    else:
+        await message.channel.send('You do not have the role for this command')
+
+async def setscoreFunc(message, splitcontent):
+    leadermanrole = discord.utils.find(lambda r: r.name == "Leader Man", message.guild.roles)
+    jrrole = discord.utils.find(lambda r: r.name == "Jrs", message.guild.roles)
+    if not (leadermanrole in message.author.roles or jrrole in message.author.roles):
+        await message.channel.send('You do not have the role for this command')
+        return
+    
+    if len(message.mentions) < 1:
+        await message.channel.send('No target mentioned')
+        return
+    
+    if len(splitcontent) < 4:
+        await message.channel.send('No score specified')
+        return
+    
+    newScore = 0
+    try:
+        newScore = int(splitcontent[3])
+    except:
+        await message.channel.send('Invalid score specified')
+        return
+    
+    database.setScore(message.mentions[0].id, newScore)
+    await message.add_reaction('✅')
+
 COMMAND_SET = {
     'help' : {
         'helpmsg' : 'Prints out the list of commands available, !gb help <cmd> for command usage',
@@ -241,6 +278,16 @@ COMMAND_SET = {
     },
     'lb' : {
         'alias' : 'leaderboard'
+    },
+    'reset' : {
+        'helpmsg' : 'Resets all scores (Leaderman only command)',
+        'usage' : '!gb reset',
+        'function' : resetFunc
+    },
+    'setscore' : {
+        'helpmsg' : 'Sets the score of a user (JR+ only)',
+        'usage' : '!gb setScore @target <score>',
+        'function' : setscoreFunc
     }
 }
 
@@ -253,7 +300,7 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    if message.author == client.user: #Ignore messages by self
+    if message.author == client.user or message.guild is False: #Ignore messages by self and in DMs
         return
 
     if message.content.startswith('!gb'):
