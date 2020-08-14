@@ -72,6 +72,14 @@ async def confirmFunc(message, splitcontent):
     reactions = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','◀️','▶️']
     confirmedSet = set()
 
+    if len(scores) == 0:
+        embed['fields'].append({
+            'name' : '\u200b',
+            'value' : 'No scores found'
+        })
+        await message.channel.send(embed = discord.Embed.from_dict(embed))
+        return
+
     def setupPage(embed, scores):
         embed["fields"] = []
         formattedScores = []
@@ -155,6 +163,14 @@ async def leaderboardFunc(message, splitcontent):
     }
     scores = database.getSortedScores()
     offset = 0
+
+    if len(scores) == 0:
+        embed['fields'].append({
+            'name' : '\u200b',
+            'value' : 'No scores found'
+        })
+        await message.channel.send(embed = discord.Embed.from_dict(embed))
+        return
 
     def setupLeaderboard(embed, scores):
         placing = offset + 1
