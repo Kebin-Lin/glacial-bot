@@ -49,7 +49,7 @@ async def reportFunc(message, splitcontent):
     except:
         await message.channel.send("Invalid score supplied")
         return
-    database.reportScore(message.author, score)
+    database.reportScore(message.author.id, score)
     await message.add_reaction('✅')
 
 async def confirmFunc(message, splitcontent):
@@ -58,7 +58,7 @@ async def confirmFunc(message, splitcontent):
     embed = {
         "color" : 7855479,
         "author" : {
-            "name" : "Leaderboards",
+            "name" : "Scores to Confirm",
             "icon_url" : str(client.user.avatar_url)
         },
         "fields" : []
@@ -75,7 +75,10 @@ async def confirmFunc(message, splitcontent):
         for i in scores[offset : offset + 10]:
             formattedScores.append(f"{reactions[emotectr] if offset + emotectr not in confirmedSet else '✅'} **{str(client.get_user(i[0]))}** - {i[1]}")
             emotectr += 1
-        embed['fields'].append({'value' : '\n'.join(formattedScores)})
+        embed['fields'].append({
+            'name' : '\u200b',
+            'value' : '\n'.join(formattedScores)
+        })
     
     setupPage(embed, scores)
     sentMsg = await message.channel.send(embed = discord.Embed.from_dict(embed))
@@ -85,6 +88,9 @@ async def confirmFunc(message, splitcontent):
         await sentMsg.add_reaction(reactions[i])
     
     waitForReaction = True
+
+    def check(reaction, user):
+        return reaction.message.id == sentMsg.id and user == message.author and str(reaction.emoji) in reactions
 
     while waitForReaction:
         try:
@@ -113,7 +119,7 @@ async def confirmFunc(message, splitcontent):
         else:
             emote = str(reaction.emoji)
             match = -1
-            for i in range(12, -1, -1): #Search for matching emote in emote list
+            for i in range(11, -1, -1): #Search for matching emote in emote list
                 if reactions[i] == emote:
                     match = i
                     break
@@ -131,8 +137,8 @@ async def confirmFunc(message, splitcontent):
                 if offset + match < len(scores) and offset + match not in confirmedSet:
                     confirmedSet.add(offset + match)
                     setupPage(embed, scores)
+                    database.confirmScore(scores[offset + match][0])
                     await sentMsg.edit(embed = discord.Embed.from_dict(embed))
-                    database.confirmScore(scores[offset + match][1])
 
 async def leaderboardFunc(message, splitcontent):
     embed = {
@@ -151,10 +157,14 @@ async def leaderboardFunc(message, splitcontent):
         embed['fields'] = []
         formattedPlacings = []
         for i in scores[offset : offset + 10]:
-            formattedPlacings.append(f"{placing + 1}. **{str(client.get_user(i[0]))}** - {i[1]}")
+            formattedPlacings.append(f"{placing}. **{str(client.get_user(i[0]))}** - {i[1]}")
             placing += 1
-        embed['fields'].append({'value' : '\n'.join(formattedPlacings)})
+        embed['fields'].append({
+            'name' : '\u200b',
+            'value' : '\n'.join(formattedPlacings)
+        })
     
+    setupLeaderboard(embed, scores)
     sentMsg = await message.channel.send(embed = discord.Embed.from_dict(embed))
 
     def check(reaction, user):
@@ -246,7 +256,7 @@ async def on_message(message):
     if message.author == client.user: #Ignore messages by self
         return
 
-    if message.content.startswith('!market'):
+    if message.content.startswith('!gb'):
         splitcontent = message.content.split()
         if len(splitcontent) <= 1 or splitcontent[1].lower() not in COMMAND_SET:
             await message.channel.send('Invalid command, for a list of commands, use !gb help')

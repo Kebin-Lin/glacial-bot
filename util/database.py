@@ -10,7 +10,14 @@ def confirmScore(userID):
     if cursor.rowcount == 0:
         return False
     toAdd = cursor.fetchall()[0][0]
-    cursor.execute("UPDATE scores SET score = score + %s WHERE userID = %s", (toAdd, userID))
+    cursor.execute("DELETE FROM toConfirm WHERE userID = %s", (userID,))
+    cursor.execute('''
+        INSERT INTO scores (userID, score)
+        VALUES (%s, %s)
+        ON CONFLICT (userID)
+        DO
+            UPDATE SET score = EXCLUDED.score + scores.score
+    ''', (userID, toAdd,))
     conn.commit()
 
 def getUnconfirmedScores():
