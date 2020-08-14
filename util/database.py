@@ -1,7 +1,6 @@
 import os, atexit
 import psycopg2
 
-tl = Timeloop()
 DATABASE_URL = os.environ['DATABASE_URL']
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 cursor = conn.cursor()
@@ -13,6 +12,10 @@ def confirmScore(userID):
     toAdd = cursor.fetchall()[0][0]
     cursor.execute("UPDATE scores SET score = score + %s WHERE userID = %s", (toAdd, userID))
     conn.commit()
+
+def getUnconfirmedScores():
+    cursor.execute("SELECT userID, score FROM toConfirm")
+    return cursor.fetchall()
 
 def getSortedScores():
     cursor.execute("SELECT userID, score FROM scores ORDER BY score DESC")
