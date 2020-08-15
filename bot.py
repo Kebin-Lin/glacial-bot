@@ -278,6 +278,111 @@ async def setscoreFunc(message, splitcontent):
     database.setScore(message.mentions[0].id, newScore, newNumRaces)
     await message.add_reaction('✅')
 
+async def raffleFunc(message, splitcontent):
+    role = discord.utils.find(lambda r: r.name == "Leader Man", message.guild.roles)
+    if role not in message.author.roles:
+        await message.channel.send('You do not have the role for this command')
+        return
+    
+    embed = {
+        "color" : 7855479,
+        "author" : {
+            "name" : "Raffle",
+            "icon_url" : str(client.user.avatar_url)
+        },
+        "fields" : [
+            {
+                'name' : '20k NX Winner',
+                'value' : '❓'
+            },
+            {
+                'name' : '10k NX Winner',
+                'value' : '❓'
+            },
+            {
+                'name' : '10k NX Winner',
+                'value' : '❓'
+            }
+        ]
+    }
+
+    winners = []
+    scores = database.getSortedScores()
+    validEntries = []
+    totalTickets = 0
+
+    for i in scores: #Set up list of people who have over ten races
+        if i[2] < 10:
+            continue
+        numTickets = 3 + (i[1] / 100)
+        validEntries.append([i[0], numTickets])
+        totalTickets += numTickets
+    
+    if len(validEntries) < 3:
+        await message.channel.send('Less than three people are elegible for the raffle')
+        return
+
+    totalTickets = float(totalTickets)
+
+    for i in range(3):
+        winner = random.random() * totalTickets
+        accumulator = 0
+        for i in validEntries:
+            accumulator += i[1]
+            if accumulator > winner: #Winner found
+                winners.append(i[0])
+                totalTickets -= float(i[1])
+                i[1] = 0
+                break
+
+    sentMsg = await message.channel.send(embed = discord.Embed.from_dict(embed))
+
+    def check(reaction, user):
+        return reaction.message.id == sentMsg.id and user == message.author and str(reaction.emoji) in reactions
+
+    waitForReaction = True
+    numRevealed = 0
+    reactions = ['⏩']
+    await sentMsg.add_reaction('⏩')
+
+    while waitForReaction:
+        try:
+            done, pending = await asyncio.wait(
+                [
+                    client.wait_for('reaction_add', check = check),
+                    client.wait_for('reaction_remove', check = check)
+                ],
+                return_when = asyncio.FIRST_COMPLETED,
+                timeout = 60,
+            )
+            #Cancel other task
+            gather = asyncio.gather(*pending)
+            gather.cancel()
+            try:
+                await gather
+            except asyncio.CancelledError:
+                pass
+            if len(done) == 0:
+                raise asyncio.TimeoutError('No change in reactions')
+            reaction = done.pop().result()[0]
+        except asyncio.TimeoutError:
+            waitForReaction = False
+            embed['color'] = 0xff6961
+            await sentMsg.edit(embed = discord.Embed.from_dict(embed))
+        else:
+            emote = str(reaction.emoji)
+            if emote == '⏩':
+                if numRevealed < 3:
+                    embed['fields'][2 - numRevealed]['value'] = str(client.get_user(winners[numRevealed]))
+                    numRevealed += 1
+                    await sentMsg.edit(embed = discord.Embed.from_dict(embed))
+                else:
+                    waitForReaction = False
+                    embed['color'] = 0xff6961
+                    await sentMsg.edit(embed = discord.Embed.from_dict(embed))
+
+
+
 COMMAND_SET = {
     'help' : {
         'helpmsg' : 'Prints out the list of commands available, !gb help <cmd> for command usage',
@@ -311,6 +416,11 @@ COMMAND_SET = {
         'helpmsg' : 'Sets the score of a user (JR+ only)',
         'usage' : '!gb setScore @target <score> <number of races>',
         'function' : setscoreFunc
+    },
+    'raffle' : {
+        'helpmsg' : 'Initiates raffle drawing (Leaderman only command)',
+        'usage' : '!gb raffle',
+        'function' : raffleFunc
     }
 }
 
