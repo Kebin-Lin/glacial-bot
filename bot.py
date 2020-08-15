@@ -135,7 +135,7 @@ async def confirmFunc(message, splitcontent):
         else:
             emote = str(reaction.emoji)
             match = -1
-            for i in range(11, -1, -1): #Search for matching emote in emote list
+            for i in range(12, -1, -1): #Search for matching emote in emote list
                 if reactions[i] == emote:
                     match = i
                     break
