@@ -145,6 +145,7 @@ async def confirmFunc(message, splitcontent):
                     embed['footer'] = {'text' : '❌ Deny mode active'}
                 else:
                     embed['footer'] = {'text' : '✅ Confirm mode active'}
+                await sentMsg.edit(embed = discord.Embed.from_dict(embed))
             elif match == 11: #Next page
                 if offset + 10 < len(scores):
                     offset += 10
