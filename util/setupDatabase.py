@@ -10,7 +10,8 @@ def setup():
         '''
         CREATE TABLE IF NOT EXISTS scores(
             userID NUMERIC PRIMARY KEY,
-            score NUMERIC NOT NULL
+            score NUMERIC NOT NULL,
+            numRaces NUMERIC NOT NULL
         )
         '''
     )
@@ -18,7 +19,8 @@ def setup():
         '''
         CREATE TABLE IF NOT EXISTS toConfirm(
             userID NUMERIC PRIMARY KEY,
-            score NUMERIC NOT NULL
+            score NUMERIC NOT NULL,
+            numRaces NUMERIC NOT NULL
         )
         '''
     )

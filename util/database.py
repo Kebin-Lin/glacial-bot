@@ -10,45 +10,47 @@ def reset():
     cursor.execute("DELETE FROM scores")
     conn.commit()
 
-def setScore(userID, score):
+def setScore(userID, score, numRaces):
     cursor.execute('''
-        INSERT INTO scores (userID, score)
-        VALUES (%s, %s)
+        INSERT INTO scores (userID, score, numRaces)
+        VALUES (%s, %s, %s)
         ON CONFLICT (userID)
         DO
-            UPDATE SET score = EXCLUDED.score
-    ''', (userID, score,))
+            UPDATE SET score = EXCLUDED.score, numRaces = EXCLUDED.numRaces
+    ''', (userID, score, numRaces,))
     conn.commit()
 
 def confirmScore(userID):
-    cursor.execute("SELECT score FROM toConfirm WHERE userID = %s LIMIT 1", (userID,))
+    cursor.execute("SELECT score, numRaces FROM toConfirm WHERE userID = %s LIMIT 1", (userID,))
     if cursor.rowcount == 0:
         return False
-    toAdd = cursor.fetchall()[0][0]
+    toAdd = cursor.fetchall()[0]
     cursor.execute("DELETE FROM toConfirm WHERE userID = %s", (userID,))
     cursor.execute('''
-        INSERT INTO scores (userID, score)
-        VALUES (%s, %s)
+        INSERT INTO scores (userID, score, numRaces)
+        VALUES (%s, %s, %s)
         ON CONFLICT (userID)
         DO
-            UPDATE SET score = EXCLUDED.score + scores.score
-    ''', (userID, toAdd,))
+            UPDATE SET score = EXCLUDED.score + scores.score, numRaces = EXCLUDED.numRaces + scores.numRaces
+    ''', (userID, toAdd[0], toAdd[1],))
     conn.commit()
 
 def getUnconfirmedScores():
-    cursor.execute("SELECT userID, score FROM toConfirm")
+    cursor.execute("SELECT * FROM toConfirm")
     return cursor.fetchall()
 
 def getSortedScores():
-    cursor.execute("SELECT userID, score FROM scores ORDER BY score DESC")
+    cursor.execute("SELECT * FROM scores ORDER BY score DESC")
     return cursor.fetchall()
 
 def reportScore(userID, reportedScore):
-    cursor.execute("SELECT score FROM toConfirm WHERE userID = %s LIMIT 1", (userID,))
-    if cursor.rowcount == 0:
-        cursor.execute("INSERT INTO toConfirm (userID, score) VALUES (%s, %s)", (userID, reportedScore,))
-    else:
-        cursor.execute("UPDATE toConfirm SET score = score + %s WHERE userID = %s", (reportedScore, userID))
+    cursor.execute('''
+        INSERT INTO toConfirm (userID, score, numRaces)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (userID)
+        DO
+            UPDATE SET score = EXCLUDED.score + toConfirm.score, numRaces = EXCLUDED.numRaces + toConfirm.numRaces
+    ''', (userID, reportedScore, 1,))
     conn.commit()
 
 @atexit.register

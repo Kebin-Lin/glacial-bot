@@ -85,7 +85,7 @@ async def confirmFunc(message, splitcontent):
         formattedScores = []
         emotectr = 0
         for i in scores[offset : offset + 10]:
-            formattedScores.append(f"{reactions[emotectr] if offset + emotectr not in confirmedSet else '✅'} **{str(client.get_user(i[0]))}** - {i[1]}")
+            formattedScores.append(f"{reactions[emotectr] if offset + emotectr not in confirmedSet else '✅'} **{str(client.get_user(i[0]))}** - {i[1]} points over {i[2]} race(s)")
             emotectr += 1
         embed['fields'].append({
             'name' : '\u200b',
@@ -177,7 +177,7 @@ async def leaderboardFunc(message, splitcontent):
         embed['fields'] = []
         formattedPlacings = []
         for i in scores[offset : offset + 10]:
-            formattedPlacings.append(f"{placing}. **{str(client.get_user(i[0]))}** - {i[1]}")
+            formattedPlacings.append(f"{placing}. **{str(client.get_user(i[0]))}** - {i[1]} points over {i[2]} race(s)")
             placing += 1
         embed['fields'].append({
             'name' : '\u200b',
@@ -257,8 +257,8 @@ async def setscoreFunc(message, splitcontent):
         await message.channel.send('No target mentioned')
         return
     
-    if len(splitcontent) < 4:
-        await message.channel.send('No score specified')
+    if len(splitcontent) < 5:
+        await message.channel.send('No score/number of races specified')
         return
     
     newScore = 0
@@ -268,7 +268,14 @@ async def setscoreFunc(message, splitcontent):
         await message.channel.send('Invalid score specified')
         return
     
-    database.setScore(message.mentions[0].id, newScore)
+    newNumRaces = 0
+    try:
+        newScore = int(splitcontent[4])
+    except:
+        await message.channel.send('Invalid number of races specified')
+        return
+    
+    database.setScore(message.mentions[0].id, newScore, newNumRaces)
     await message.add_reaction('✅')
 
 COMMAND_SET = {
@@ -302,7 +309,7 @@ COMMAND_SET = {
     },
     'setscore' : {
         'helpmsg' : 'Sets the score of a user (JR+ only)',
-        'usage' : '!gb setScore @target <score>',
+        'usage' : '!gb setScore @target <score> <number of races>',
         'function' : setscoreFunc
     }
 }
