@@ -69,8 +69,9 @@ async def confirmFunc(message, splitcontent):
     }
     scores = database.getUnconfirmedScores()
     offset = 0
-    reactions = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','◀️','▶️']
+    reactions = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','◀️','▶️','❌']
     confirmedSet = set()
+    deniedSet = set()
 
     if len(scores) == 0:
         embed['fields'].append({
@@ -80,12 +81,14 @@ async def confirmFunc(message, splitcontent):
         await message.channel.send(embed = discord.Embed.from_dict(embed))
         return
 
+    embed['footer'] = {"text" : "✅ Confirm mode active"}
+
     def setupPage(embed, scores):
         embed["fields"] = []
         formattedScores = []
         emotectr = 0
         for i in scores[offset : offset + 10]:
-            formattedScores.append(f"{reactions[emotectr] if offset + emotectr not in confirmedSet else '✅'} **{str(client.get_user(i[0]))}** - {i[1]} points over {i[2]} race(s)")
+            formattedScores.append(f"{'✅' if offset + emotectr in confirmedSet else '❌' if offset + emotectr in deniedSet else reactions[emotectr]} **{str(client.get_user(i[0]))}** - {i[1]} points over {i[2]} race(s)")
             emotectr += 1
         embed['fields'].append({
             'name' : '\u200b',
@@ -96,10 +99,11 @@ async def confirmFunc(message, splitcontent):
     sentMsg = await message.channel.send(embed = discord.Embed.from_dict(embed))
     for i in range(min(10, len(scores))):
         await sentMsg.add_reaction(reactions[i])
-    for i in range(10, 12):
+    for i in range(10, 13):
         await sentMsg.add_reaction(reactions[i])
     
     waitForReaction = True
+    denyMode = False
 
     def check(reaction, user):
         return reaction.message.id == sentMsg.id and user == message.author and str(reaction.emoji) in reactions
@@ -135,7 +139,13 @@ async def confirmFunc(message, splitcontent):
                 if reactions[i] == emote:
                     match = i
                     break
-            if match == 11: #Next page
+            if match == 12: #Toggle deny mode
+                denyMode = not denyMode
+                if denyMode:
+                    embed['footer'] = {'text' : '❌ Deny mode active'}
+                else:
+                    embed['footer'] = {'text' : '✅ Confirm mode active'}
+            elif match == 11: #Next page
                 if offset + 10 < len(scores):
                     offset += 10
                     setupPage(embed, scores)
@@ -147,9 +157,13 @@ async def confirmFunc(message, splitcontent):
                     await sentMsg.edit(embed = discord.Embed.from_dict(embed))
             else:
                 if offset + match < len(scores) and offset + match not in confirmedSet:
-                    confirmedSet.add(offset + match)
+                    if denyMode:
+                        deniedSet.add(offset + match)
+                        database.denyScore(scores[offset + match][0])
+                    else:
+                        confirmedSet.add(offset + match)
+                        database.confirmScore(scores[offset + match][0])
                     setupPage(embed, scores)
-                    database.confirmScore(scores[offset + match][0])
                     await sentMsg.edit(embed = discord.Embed.from_dict(embed))
 
 async def leaderboardFunc(message, splitcontent):

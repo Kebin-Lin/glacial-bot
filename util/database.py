@@ -35,6 +35,10 @@ def confirmScore(userID):
     ''', (userID, toAdd[0], toAdd[1],))
     conn.commit()
 
+def denyScore(userID):
+    cursor.execute("DELETE FROM toConfirm WHERE userID = %s", (userID,))
+    conn.commit()
+
 def getUnconfirmedScores():
     cursor.execute("SELECT * FROM toConfirm")
     return cursor.fetchall()
