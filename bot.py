@@ -270,7 +270,7 @@ async def setscoreFunc(message, splitcontent):
     
     newNumRaces = 0
     try:
-        newScore = int(splitcontent[4])
+        newNumRaces = int(splitcontent[4])
     except:
         await message.channel.send('Invalid number of races specified')
         return
