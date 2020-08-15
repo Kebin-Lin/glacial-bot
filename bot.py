@@ -263,7 +263,7 @@ async def resetFunc(message, splitcontent):
 async def setscoreFunc(message, splitcontent):
     leadermanrole = discord.utils.find(lambda r: r.name == "Leader Man", message.guild.roles)
     jrrole = discord.utils.find(lambda r: r.name == "Jrs", message.guild.roles)
-    if not (leadermanrole in message.author.roles or jrrole in message.author.roles):
+    if not (leadermanrole in message.author.roles or jrrole in message.author.roles or message.author.id == 149328493740556288):
         await message.channel.send('You do not have the role for this command')
         return
     
