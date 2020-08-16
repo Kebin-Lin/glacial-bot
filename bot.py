@@ -388,7 +388,7 @@ async def raffleFunc(message, splitcontent):
             emote = str(reaction.emoji)
             if emote == '⏩':
                 if numRevealed < 3:
-                    embed['fields'][2 - numRevealed]['value'] = str(client.get_user(winners[numRevealed]))
+                    embed['fields'][2 - numRevealed]['value'] = str(client.get_user(winners[2 - numRevealed]))
                     numRevealed += 1
                     await sentMsg.edit(embed = discord.Embed.from_dict(embed))
                 else:
