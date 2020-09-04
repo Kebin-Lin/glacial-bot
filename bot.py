@@ -413,8 +413,8 @@ async def sfcalcFunc(message, splitcontent, numTrials = 1000):
         optionalArgs = splitcontent[5:]
         discount = 1
         safeguard = int("safeguard" in optionalArgs)
-        fivetenfifteen = int("fivetenfifteen" in optionalArgs)
-        thirtyperc = int("thirtyperc" in optionalArgs)
+        fivetenfifteen = int("5/10/15" in optionalArgs)
+        thirtyperc = int("30%" in optionalArgs)
         process = subprocess.Popen(["./sfcalc", str(start), str(goal), str(equiplv), str(numTrials), str(discount), str(safeguard), str(fivetenfifteen), str(thirtyperc)], stdout = subprocess.PIPE)
         avgMeso = process.stdout.readline().decode('utf-8').strip()
         avgBooms = process.stdout.readline().decode('utf-8').strip()
@@ -513,12 +513,12 @@ COMMAND_SET = {
     },
     'sfcalc' : {
         'helpmsg' : 'Simulates starforcing',
-        'usage' : '!gb sfcalc <start stars> <target stars> <item level> Optional: safeguard fivetenfifteen thirtyperc',
+        'usage' : '!gb sfcalc <start stars> <target stars> <item level> Optional: safeguard 5/10/15 30%',
         'function' : sfcalcFunc
     },
     'sfroll' : {
         'helpmsg' : 'Simulates one roll for starforce',
-        'usage' : '!gb sfroll <start stars> <target stars> <item level> Optional: safeguard fivetenfifteen thirtyperc',
+        'usage' : '!gb sfroll <start stars> <target stars> <item level> Optional: safeguard 5/10/15 30%',
         'function' : sfrollFunc
     }
 }
