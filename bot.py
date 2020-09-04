@@ -456,7 +456,7 @@ async def sfcalcFunc(message, splitcontent):
                 },
                 {
                     "name" : "Average Meso Cost",
-                    "value" : avgMeso
+                    "value" : "{:,}".format(int(avgMeso))
                 },
                 {
                     "name" : "Average Number of Booms",
