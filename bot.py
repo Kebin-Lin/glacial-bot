@@ -1,4 +1,4 @@
-import os, math, asyncio, random
+import os, math, asyncio, random, subprocess
 import discord
 from util import database
 
@@ -396,7 +396,79 @@ async def raffleFunc(message, splitcontent):
                     embed['color'] = 0xff6961
                     await sentMsg.edit(embed = discord.Embed.from_dict(embed))
 
-
+async def sfcalcFunc(message, splitcontent):
+    try:
+        start = int(splitcontent[2])
+        if (start < 0 or start > 21):
+            await message.channel.send('Invalid starting star')
+            return
+        goal = int(splitcontent[3])
+        if (goal < 0 or goal > 22):
+            await message.channel.send('Invalid goal')
+            return
+        equiplv = int(splitcontent[4])
+        if (equiplv < 1 or equiplv > 200):
+            await message.channel.send('Invalid item level')
+            return
+        numTrials = 1000
+        optionalArgs = splitcontent[5:]
+        discount = 1
+        safeguard = int("safeguard" in optionalArgs)
+        fivetenfifteen = int("fivetenfifteen" in optionalArgs)
+        thirtyperc = int("thirtyperc" in optionalArgs)
+        process = subprocess.Popen(["./sfcalc", str(start), str(goal), str(equiplv), str(numTrials), str(discount), str(safeguard), str(fivetenfifteen), str(thirtyperc)], stdout = subprocess.PIPE)
+        avgMeso = process.stdout.readline().decode('utf-8').strip()
+        avgBooms = process.stdout.readline().decode('utf-8').strip()
+        activeOptions = []
+        if (safeguard):
+            activeOptions.append("Safeguard")
+        if (fivetenfifteen):
+            activeOptions.append("5/10/15")
+        if (thirtyperc):
+            activeOptions.append("30%")
+        if len(activeOptions) == 0:
+            activeOptions.append("None")
+        embed = {
+            "color" : 7855479,
+            "author" : {
+                "name" : "Star Force Calculator",
+                "icon_url" : str(client.user.avatar_url)
+            },
+            "fields" : [
+                {
+                    "name" : "Starting Star",
+                    "value" : start,
+                    "inline" : True
+                },
+                {
+                    "name" : "Star Goal",
+                    "value" : goal,
+                    "inline" : True
+                },
+                {
+                    "name" : "Item Level",
+                    "value" : equiplv,
+                    "inline" : True
+                },
+                {
+                    "name" : "Active Options",
+                    "value" : "\n".join(activeOptions)
+                },
+                {
+                    "name" : "Average Meso Cost",
+                    "value" : avgMeso
+                },
+                {
+                    "name" : "Average Number of Booms",
+                    "value" : avgBooms
+                }
+            ]
+        }
+        await message.channel.send(embed = discord.Embed.from_dict(embed))
+        return
+    except:
+        await message.channel.send('Invalid input')
+        return
 
 COMMAND_SET = {
     'help' : {
@@ -436,6 +508,11 @@ COMMAND_SET = {
         'helpmsg' : 'Initiates raffle drawing (Leaderman only command)',
         'usage' : '!gb raffle',
         'function' : raffleFunc
+    },
+    'sfcalc' : {
+        'helpmsg' : 'Simulates starforcing',
+        'usage' : '!gb sfcalc <start stars> <target stars> <item level> Optional: safeguard fivetenfifteen thirtyperc',
+        'function' : sfcalcFunc
     }
 }
 
