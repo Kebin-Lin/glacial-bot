@@ -396,7 +396,7 @@ async def raffleFunc(message, splitcontent):
                     embed['color'] = 0xff6961
                     await sentMsg.edit(embed = discord.Embed.from_dict(embed))
 
-async def sfcalcFunc(message, splitcontent):
+async def sfcalcFunc(message, splitcontent, numTrials = 1000):
     try:
         start = int(splitcontent[2])
         if (start < 0 or start > 21):
@@ -410,7 +410,6 @@ async def sfcalcFunc(message, splitcontent):
         if (equiplv < 1 or equiplv > 200):
             await message.channel.send('Invalid item level')
             return
-        numTrials = 1000
         optionalArgs = splitcontent[5:]
         discount = 1
         safeguard = int("safeguard" in optionalArgs)
@@ -455,11 +454,11 @@ async def sfcalcFunc(message, splitcontent):
                     "value" : "\n".join(activeOptions)
                 },
                 {
-                    "name" : "Average Meso Cost",
+                    "name" : "Average Meso Cost" if numTrials != 1 else "Meso Cost",
                     "value" : "{:,}".format(int(avgMeso))
                 },
                 {
-                    "name" : "Average Number of Booms",
+                    "name" : "Average Number of Booms" if numTrials != 1 else "Number of Booms",
                     "value" : avgBooms
                 }
             ]
@@ -469,6 +468,9 @@ async def sfcalcFunc(message, splitcontent):
     except:
         await message.channel.send('Invalid input')
         return
+
+async def sfrollFunc(message, splitcontent):
+    await sfcalcFunc(message, splitcontent, numTrials = 1)
 
 COMMAND_SET = {
     'help' : {
@@ -513,6 +515,11 @@ COMMAND_SET = {
         'helpmsg' : 'Simulates starforcing',
         'usage' : '!gb sfcalc <start stars> <target stars> <item level> Optional: safeguard fivetenfifteen thirtyperc',
         'function' : sfcalcFunc
+    },
+    'sfroll' : {
+        'helpmsg' : 'Simulates one roll for starforce',
+        'usage' : '!gb sfroll <start stars> <target stars> <item level> Optional: safeguard fivetenfifteen thirtyperc',
+        'function' : sfrollFunc
     }
 }
 
