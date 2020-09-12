@@ -307,7 +307,7 @@ async def raffleFunc(message, splitcontent):
         },
         "fields" : [
             {
-                'name' : '20k NX Winner',
+                'name' : '25k NX Gift Winner',
                 'value' : '❓'
             },
             {
