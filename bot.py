@@ -467,7 +467,7 @@ async def sfcalcFunc(message, splitcontent, numTrials = 1000):
         if (numTrials != 1):
             embed['fields'].append({
                 "name" : "No Boom Rate",
-                "value" : f"{noBoomRate * 100}%"
+                "value" : f"{float(noBoomRate) * 100}%"
             })
         await message.channel.send(embed = discord.Embed.from_dict(embed))
         return
