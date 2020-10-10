@@ -149,7 +149,7 @@ int main(int argc, char *argv[]) {
         double noBoomRate;
         runTrials(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]), std::stoi(argv[4]),
                   std::stod(argv[5]), std::stoi(argv[6]), std::stoi(argv[7]), std::stoi(argv[8]),
-                  avgCost, avgBooms);
+                  avgCost, avgBooms, noBoomRate);
         std::cout << avgCost << std::endl << avgBooms << std::endl << noBoomRate << std::endl;
     }
 }
