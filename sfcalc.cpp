@@ -120,15 +120,22 @@ void trial(int start, int goal, int equiplv, bool safeguard, bool fivetenfifteen
     totalBooms += booms;
 }
 
-void runTrials(int start, int goal, int equiplv, int numTrials, double discount, bool safeguard, bool fivetenfifteen, bool thirtyperc, long& avgCost, double& avgBooms) {
+void runTrials(int start, int goal, int equiplv, int numTrials, double discount, bool safeguard, bool fivetenfifteen, bool thirtyperc, long& avgCost, double& avgBooms, double& noBoomRate) {
     long totalCost = 0;
     int totalBooms = 0;
+    int numNoBooms = 0;
     int savedCosts[22] = {0};
     for (int i = 0; i < numTrials; i++) {
-        trial(start, goal, equiplv, safeguard, fivetenfifteen, thirtyperc, totalCost, totalBooms, &savedCosts[0]);
+        int numBooms = 0;
+        trial(start, goal, equiplv, safeguard, fivetenfifteen, thirtyperc, totalCost, numBooms, &savedCosts[0]);
+        totalBooms += numBooms;
+        if (numBooms == 0) {
+            numNoBooms++;
+        }
     }
     avgCost = totalCost / numTrials * discount;
     avgBooms = ((double) totalBooms) / numTrials;
+    noBoomRate = ((double) numNoBooms) / numTrials;
 }
 
 int main(int argc, char *argv[]) {
@@ -139,9 +146,10 @@ int main(int argc, char *argv[]) {
     } else {
         long avgCost;
         double avgBooms;
+        double noBoomRate;
         runTrials(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]), std::stoi(argv[4]),
                   std::stod(argv[5]), std::stoi(argv[6]), std::stoi(argv[7]), std::stoi(argv[8]),
                   avgCost, avgBooms);
-        std::cout << avgCost << std::endl << avgBooms << std::endl;
+        std::cout << avgCost << std::endl << avgBooms << std::endl << noBoomRate << std::endl;
     }
 }

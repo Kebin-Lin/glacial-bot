@@ -418,6 +418,7 @@ async def sfcalcFunc(message, splitcontent, numTrials = 1000):
         process = subprocess.Popen(["./sfcalc", str(start), str(goal), str(equiplv), str(numTrials), str(discount), str(safeguard), str(fivetenfifteen), str(thirtyperc)], stdout = subprocess.PIPE)
         avgMeso = process.stdout.readline().decode('utf-8').strip()
         avgBooms = process.stdout.readline().decode('utf-8').strip()
+        noBoomRate = process.stdout.readline().decode('utf-8').strip()
         activeOptions = []
         if (safeguard):
             activeOptions.append("Safeguard")
@@ -463,6 +464,11 @@ async def sfcalcFunc(message, splitcontent, numTrials = 1000):
                 }
             ]
         }
+        if (numTrials != 1):
+            embed['fields'].append({
+                "name" : "No Boom Rate",
+                "value" : f"{noBoomRate * 100}%"
+            })
         await message.channel.send(embed = discord.Embed.from_dict(embed))
         return
     except:
