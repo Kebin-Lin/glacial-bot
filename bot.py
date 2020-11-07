@@ -2,7 +2,8 @@ import os, math, asyncio, random, subprocess
 import discord
 from util import database
 
-client = discord.Client()
+intents = discord.Intents.default()
+client = discord.Client(intents=intents)
 
 async def helpFunc(message, splitcontent):
     embed = {
