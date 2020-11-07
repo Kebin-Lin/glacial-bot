@@ -2,7 +2,7 @@ import os, math, asyncio, random, subprocess
 import discord
 from util import database
 
-intents = discord.Intents.default()
+intents = discord.Intents.all()
 client = discord.Client(intents=intents)
 
 async def helpFunc(message, splitcontent):
