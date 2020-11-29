@@ -547,7 +547,7 @@ async def scheduleFunc(message, splitcontent):
         await message.channel.send("Invalid day provided.")
         return
     try:
-        eventTime[1] = eval(eventTime[1])
+        eventTime[1] = float(eventTime[1])
     except:
         await message.channel.send("Invalid time provided.")
         return
