@@ -5,6 +5,62 @@ DATABASE_URL = os.environ['DATABASE_URL']
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 cursor = conn.cursor()
 
+def confirmConnection():
+    global conn, cursor
+    if conn.closed != 0:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cursor = conn.cursor()
+
+def eventExists(userID, eventName):
+    cursor.execute("SELECT 1 FROM events WHERE organizerID = %s AND eventName = %s LIMIT 1", (userID, eventName,))
+    return cursor.rowcount != 0
+
+def createEvent(userID, eventName, eventDateTime, attendeeList, channelID, messageID):
+    cursor.execute('''
+        INSERT INTO events (organizerID, eventName, eventDateTime, channelID, messageID)
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING eventID
+    ''', (userID, eventName, eventDateTime, channelID, messageID,))
+    eventID = cursor.fetchone()[0]
+    args = b",".join(cursor.mogrify("(%s, %s)", (eventID, x,)) for x in attendeeList)
+    cursor.execute(b"INSERT INTO pendingEventInvites (eventID, attendeeID) VALUES " + args)
+    conn.commit()
+    return True
+
+def acceptInvite(eventID, attendeeID):
+    cursor.execute("DELETE FROM pendingEventInvites WHERE eventID = %s AND attendeeID = %s RETURNING 1", (eventID, attendeeID,))
+    if cursor.rowcount == 0:
+        return False
+    cursor.execute("INSERT INTO acceptedEventInvites (eventID, attendeeID) VALUES (%s, %s)", (eventID, attendeeID,))
+    conn.commit()
+    return True
+
+def deleteEvent(eventID):
+    cursor.execute("DELETE FROM events WHERE eventID = %s RETURNING 1", (eventID,))
+    conn.commit()
+    return cursor.rowcount == 1
+
+def cancelEvent(userID, eventName):
+    cursor.execute("DELETE FROM events WHERE organizerID = %s AND eventName = %s RETURNING 1", (userID, eventName,))
+    conn.commit()
+    return cursor.rowcount == 1
+
+def getEventFromInvite(messageID):
+    cursor.execute("SELECT * FROM events WHERE messageID = %s LIMIT 1", (messageID,))
+    return cursor.fetchall()
+
+def findEvents(eventDateTime):
+    cursor.execute("SELECT * FROM events WHERE eventDateTime = %s", (eventDateTime,))
+    return cursor.fetchall()
+
+def getAcceptedInvites(eventID):
+    cursor.execute("SELECT attendeeID FROM acceptedEventInvites WHERE eventID = %s", (eventID,))
+    return cursor.fetchall()
+
+def getPendingInvites(eventID):
+    cursor.execute("SELECT attendeeID FROM pendingEventInvites WHERE eventID = %s", (eventID,))
+    return cursor.fetchall()
+
 def reset():
     cursor.execute("DELETE FROM toConfirm")
     cursor.execute("DELETE FROM scores")

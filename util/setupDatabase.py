@@ -24,6 +24,34 @@ def setup():
         )
         '''
     )
+    cursor.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS events(
+            eventID SERIAL PRIMARY KEY,
+            organizerID NUMERIC NOT NULL,
+            eventName TEXT NOT NULL,
+            eventDateTime TIMESTAMP NOT NULL,
+            channelID NUMERIC NOT NULL,
+            messageID NUMERIC NOT NULL
+        )
+        '''
+    )
+    cursor.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS pendingEventInvites(
+            eventID INTEGER NOT NULL REFERENCES events(eventID) ON DELETE CASCADE,
+            attendeeID NUMERIC NOT NULL
+        )
+        '''
+    )
+    cursor.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS acceptedEventInvites(
+            eventID INTEGER NOT NULL REFERENCES events(eventID) ON DELETE CASCADE,
+            attendeeID NUMERIC NOT NULL
+        )
+        '''
+    )
 
 setup()
 conn.commit()
