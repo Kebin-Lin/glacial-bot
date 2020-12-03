@@ -7,7 +7,8 @@ cursor = conn.cursor()
 
 def confirmConnection():
     global conn, cursor
-    if conn.closed != 0:
+    if conn.closed != 0 or cursor.closed:
+        print("Re-established Database Connection.")
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
         cursor = conn.cursor()
 

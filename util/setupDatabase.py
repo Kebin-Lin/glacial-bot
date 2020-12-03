@@ -54,5 +54,10 @@ def setup():
     )
 
 setup()
+# cursor.execute("ALTER TABLE pendingEventInvites DROP CONSTRAINT constraint_fk")
+# cursor.execute("ALTER TABLE pendingEventInvites ADD FOREIGN KEY (eventID) REFERENCES events(eventID) ON DELETE CASCADE")
+# cursor.execute("ALTER TABLE acceptedEventInvites ADD FOREIGN KEY (eventID) REFERENCES events(eventID) ON DELETE CASCADE")
+# cursor.execute("DELETE FROM pendingEventInvites WHERE NOT EXISTS(SELECT NULL FROM events WHERE events.eventID = pendingEventInvites.eventID)")
+# cursor.execute("DELETE FROM acceptedEventInvites WHERE NOT EXISTS(SELECT NULL FROM events WHERE events.eventID = acceptedEventInvites.eventID)")
 conn.commit()
 cursor.close()
