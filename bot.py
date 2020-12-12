@@ -526,7 +526,7 @@ async def sfcalcFunc(message, splitcontent, numTrials = 1000):
             })
             embed['fields'].append({
                 "name" : "Cost Percentiles",
-                "value" : f"__Meso (75%, 85%, 95%)__\n{' '.join('{:,}'.format(int(x)) for x in mesoPercentiles.split())}\n__Booms (75%, 85%, 95%)__\n{boomPercentiles}"
+                "value" : f"__Meso__ (75%, 85%, 95%)\n{' '.join('{:,}'.format(int(x)) for x in mesoPercentiles.split())}\n__Booms__ (75%, 85%, 95%)\n{boomPercentiles}"
             })
         await message.channel.send(embed = discord.Embed.from_dict(embed))
         return
