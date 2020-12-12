@@ -1,7 +1,7 @@
 import os, math, asyncio, random, subprocess, datetime
 import discord
 from discord.ext import tasks, commands
-from util import database
+from util import database, extrafuncs
 
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
@@ -524,9 +524,15 @@ async def sfcalcFunc(message, splitcontent, numTrials = 1000):
                 "name" : "No Boom Rate",
                 "value" : f"{round(float(noBoomRate) * 100, 1)}%"
             })
+            formattedMesoPercentiles = ''
+            for i in (extrafuncs.shortenNum(int(x)) for x in mesoPercentiles.split()):
+                formattedMesoPercentiles += i + (' ' * (8 - len(i)))
+            formattedBoomPercentiles = ''
+            for i in boomPercentiles.split():
+                formattedBoomPercentiles += i + (' ' * (8 - len(i)))
             embed['fields'].append({
                 "name" : "Cost Percentiles",
-                "value" : f"__Meso__ (75%, 85%, 95%)\n{' '.join('{:,}'.format(int(x)) for x in mesoPercentiles.split())}\n__Booms__ (75%, 85%, 95%)\n{boomPercentiles}"
+                "value" : f"__Meso__\n```75%     85%     95%\n{formattedMesoPercentiles}```\n__Booms__```75%     85%     95%\n{formattedBoomPercentiles}```"
             })
         await message.channel.send(embed = discord.Embed.from_dict(embed))
         return
