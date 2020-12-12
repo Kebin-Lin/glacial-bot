@@ -472,6 +472,8 @@ async def sfcalcFunc(message, splitcontent, numTrials = 1000):
         avgMeso = process.stdout.readline().decode('utf-8').strip()
         avgBooms = process.stdout.readline().decode('utf-8').strip()
         noBoomRate = process.stdout.readline().decode('utf-8').strip()
+        mesoPercentiles = process.stdout.readline().decode('utf-8').strip()
+        boomPercentiles = process.stdout.readline().decode('utf-8').strip()
         activeOptions = []
         if (safeguard):
             activeOptions.append("Safeguard")
@@ -521,6 +523,10 @@ async def sfcalcFunc(message, splitcontent, numTrials = 1000):
             embed['fields'].append({
                 "name" : "No Boom Rate",
                 "value" : f"{round(float(noBoomRate) * 100, 1)}%"
+            })
+            embed['fields'].append({
+                "name" : "Cost Percentiles",
+                "value" : f"__Meso (75%, 85%, 95%)__\n{' '.join('{:,}'.format(int(x)) for x in mesoPercentiles.split())}\n__Booms (75%, 85%, 95%)__\n{boomPercentiles}"
             })
         await message.channel.send(embed = discord.Embed.from_dict(embed))
         return

@@ -2,6 +2,8 @@
 #include <string>
 #include <math.h>
 #include <time.h>
+#include <vector>
+#include <algorithm>
 
 enum EnhanceStates {SUCCESS, MAINTAIN, DECREASE, DESTROY};
 
@@ -120,19 +122,32 @@ void trial(int start, int goal, int equiplv, bool safeguard, bool fivetenfifteen
     totalBooms += booms;
 }
 
-void runTrials(int start, int goal, int equiplv, int numTrials, double discount, bool safeguard, bool fivetenfifteen, bool thirtyperc, long& avgCost, double& avgBooms, double& noBoomRate) {
+void runTrials(int start, int goal, int equiplv, int numTrials, double discount, bool safeguard, bool fivetenfifteen, bool thirtyperc,
+               long& avgCost, double& avgBooms, double& noBoomRate, std::vector<long>& mesoPercentiles, std::vector<int>& boomPercentiles) {
     long totalCost = 0;
     int totalBooms = 0;
     int numNoBooms = 0;
     int savedCosts[22] = {0};
+    std::vector<long> mesoVector;
+    std::vector<int> boomVector;
+    mesoVector.reserve(numTrials);
+    boomVector.reserve(numTrials);
     for (int i = 0; i < numTrials; i++) {
+        long mesoCost = 0;
         int numBooms = 0;
-        trial(start, goal, equiplv, safeguard, fivetenfifteen, thirtyperc, totalCost, numBooms, &savedCosts[0]);
+        trial(start, goal, equiplv, safeguard, fivetenfifteen, thirtyperc, mesoCost, numBooms, &savedCosts[0]);
+        mesoVector.push_back(mesoCost);
+        boomVector.push_back(numBooms);
+        totalCost += mesoCost;
         totalBooms += numBooms;
         if (numBooms == 0) {
             numNoBooms++;
         }
     }
+    std::sort(mesoVector.begin(), mesoVector.end());
+    std::sort(boomVector.begin(), boomVector.end());
+    mesoPercentiles = {mesoVector[(int) (numTrials * .75)], mesoVector[(int) (numTrials * .85)], mesoVector[(int) (numTrials * .95)]};
+    boomPercentiles = {boomVector[(int) (numTrials * .75)], boomVector[(int) (numTrials * .85)], boomVector[(int) (numTrials * .95)]};
     avgCost = totalCost / numTrials * discount;
     avgBooms = ((double) totalBooms) / numTrials;
     noBoomRate = ((double) numNoBooms) / numTrials;
@@ -142,14 +157,24 @@ int main(int argc, char *argv[]) {
     std::srand(time(NULL));
 
     if (argc < 9) {
-        std::cout << "Error" << std::endl << "Error" << std::endl;
+        std::cout << "Error" << std::endl << "Error" << std::endl << "Error" << std::endl;
     } else {
         long avgCost;
         double avgBooms;
         double noBoomRate;
+        std::vector<long> mesoPercentiles;
+        std::vector<int> boomPercentiles;
         runTrials(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]), std::stoi(argv[4]),
                   std::stod(argv[5]), std::stoi(argv[6]), std::stoi(argv[7]), std::stoi(argv[8]),
-                  avgCost, avgBooms, noBoomRate);
+                  avgCost, avgBooms, noBoomRate, mesoPercentiles, boomPercentiles);
         std::cout << avgCost << std::endl << avgBooms << std::endl << noBoomRate << std::endl;
+        for(int i = 0; i < mesoPercentiles.size(); i++) {
+            std::cout << mesoPercentiles[i] << " ";
+        }
+        std::cout << std::endl;
+        for(int i = 0; i < boomPercentiles.size(); i++) {
+            std::cout << boomPercentiles[i] << " ";
+        }
+        std::cout << std::endl;
     }
 }
