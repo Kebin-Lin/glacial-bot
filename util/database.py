@@ -28,6 +28,19 @@ def createEvent(userID, eventName, eventDateTime, attendeeList, channelID, messa
     conn.commit()
     return True
 
+def addInvite(userID, eventID, attendeeList):
+    numAdded = 0
+    for attendeeID in attendeeList:    
+        cursor.execute("SELECT 1 FROM acceptedEventInvites WHERE eventID = %s AND attendeeID = %s", (eventID, attendeeID,))
+        if cursor.rowcount != 0:
+            continue
+        cursor.execute("SELECT 1 FROM pendingEventInvites WHERE eventID = %s AND attendeeID = %s", (eventID, attendeeID,))
+        if cursor.rowcount != 0:
+            continue
+        cursor.execute("INSERT INTO pendingEventInvites (eventID, attendeeID) VALUES (%s, %s)", (eventID, attendeeID,))
+        numAdded += 1
+    return numAdded
+
 def acceptInvite(eventID, attendeeID):
     cursor.execute("DELETE FROM pendingEventInvites WHERE eventID = %s AND attendeeID = %s RETURNING 1", (eventID, attendeeID,))
     if cursor.rowcount == 0:
@@ -45,6 +58,10 @@ def cancelEvent(userID, eventName):
     cursor.execute("DELETE FROM events WHERE organizerID = %s AND eventName = %s RETURNING 1", (userID, eventName,))
     conn.commit()
     return cursor.rowcount == 1
+
+def getEventFromName(userID, eventName):
+    cursor.execute("SELECT * FROM events WHERE organizerID = %s AND eventName = %s LIMIT 1", (userID, eventName))
+    return cursor.fetchall()
 
 def getEventFromInvite(messageID):
     cursor.execute("SELECT * FROM events WHERE messageID = %s LIMIT 1", (messageID,))

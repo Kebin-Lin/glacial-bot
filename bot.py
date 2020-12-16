@@ -614,7 +614,55 @@ async def cancelFunc(message, splitcontent):
     if database.cancelEvent(organizer, eventName):
         await message.add_reaction('✅')
     else:
-        await message.channel.send(f'You are not an organizer of an event titled {eventName}')
+        await message.channel.send(f'You are not an organizer of an event titled {eventName}.')
+
+async def inviteFunc(message, splitcontent):
+    participants = [x.id for x in message.mentions]
+    if len(participants) == 0:
+        await message.channel.send("No participants provided.")
+        return 0
+    organizer = message.author.id
+    eventName = splitcontent[2]
+    eventInfo = database.getEventFromName(organizer, eventName)
+    if len(eventInfo) == 0:
+        await message.channel.send(f"You are not an organizer of an event titled {eventName}.")
+        return
+    eventInfo = eventInfo[0]
+    numAdded = database.addInvite(organizer, eventInfo[0], participants)
+    if numAdded != 0:
+        await message.channel.send(f"{numAdded} new participant(s) invited.\nHere is the link to the original invite to accept the invite:\nhttps://discord.com/channels/{message.guild.id}/{eventInfo[4]}/{eventInfo[5]}")
+        #Update invite message
+        message = await client.get_channel(eventInfo[4]).fetch_message(eventInfo[5])
+        participants = [x[0] for x in database.getAcceptedInvites(eventInfo[0])]
+        pending = [x[0] for x in database.getPendingInvites(eventInfo[0])]
+        embed = {
+            "color" : 7855479,
+            "author" : {
+                "name" : "Event Invite",
+                "icon_url" : str(client.user.avatar_url)
+            },
+            "fields" : [
+                {
+                    "name" : "Event Name",
+                    "value" : eventName
+                },
+                {
+                    "name" : "Time",
+                    "value" : str(eventInfo[3])
+                },
+                {
+                    "name" : "Participants",
+                    "value" : "None" if len(participants) == 0 else " ".join(client.get_user(x).mention for x in participants)
+                },
+                {
+                    "name" : "Pending Invites",
+                    "value" : "None" if len(pending) == 0 else " ".join(client.get_user(x).mention for x in pending)
+                }
+            ]
+        }
+        await message.edit(embed = discord.Embed.from_dict(embed))
+    else:
+        await message.channel.send("No new participants invited.")
 
 COMMAND_SET = {
     'help' : {
@@ -674,6 +722,11 @@ COMMAND_SET = {
         'helpmsg' : 'Cancels an event',
         'usage' : '!gb cancel <event name>',
         'function' : cancelFunc
+    },
+    'invite' : {
+        'helpmsg' : 'Invites user(s) to an event (ignores already invited participants)',
+        'usage' : '!gb invite <event name> <participants>',
+        'function' : inviteFunc
     }
 }
 
