@@ -570,8 +570,11 @@ async def scheduleFunc(message, splitcontent):
     eventTime = today + datetime.timedelta(days = daysUntil, hours = eventTime[1])
     eventTime = eventTime.replace(second = 0, microsecond = 0)
     if eventTime <= datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes = 15):
-        await message.channel.send("You cannot schedule an event that is 15 minutes or less away.")
-        return
+        if eventTime <= datetime.datetime.now(datetime.timezone.utc) and daysUntil == 0:
+            eventTime = eventTime + datetime.timedelta(days = 7)
+        else:
+            await message.channel.send("You cannot schedule an event that is 15 minutes or less away.")
+            return
     participants = [x.id for x in message.mentions]
     if len(participants) == 0:
         await message.channel.send("No participants provided.")
