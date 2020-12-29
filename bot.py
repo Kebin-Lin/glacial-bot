@@ -28,7 +28,7 @@ async def checkPing():
     message = await client.get_channel(STATUS_CHANNEL_ID).fetch_message(STATUS_MESSAGE_ID)
     output = extrafuncs.serverStatusSummary(pingHistory)
     print(output)
-    await message.edit(content = "```" + extrafuncs.serverStatusSummary(pingHistory) + "```")
+    await message.edit(content = "```" + extrafuncs.serverStatusSummary(pingHistory) + f"\nTimestamp: {str(datetime.datetime.now(datetime.timezone.utc))} UTC```")
 
 @checkPing.before_loop
 async def beforeStartLoopPing():

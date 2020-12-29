@@ -90,10 +90,10 @@ def serverStatusSummary(pingHistory):
     lowestAverages = heapq.nsmallest(5, [x for x in range(len(CHANNEL_LIST))], key = lambda x: averages[x])
     lowestStddevs = heapq.nsmallest(5, [x for x in range(len(CHANNEL_LIST))], key = lambda x: stddevs[x])
     infoStrings.append("Lowest Averages:\n")
-    lowestAverages = [f"Ch{('0' * (2 - len(str(i + 1)))) + str(i + 1)}: {round(averages[x], 2)}ms" for x in lowestAverages]
+    lowestAverages = [f"Ch{('0' * (2 - len(str(x + 1)))) + str(x + 1)}: {round(averages[x], 2)}ms" for x in lowestAverages]
     infoStrings.append(", ".join(lowestAverages))
     infoStrings.append("\nLowest Standard Deviations:\n")
-    lowestStddevs = [f"Ch{('0' * (2 - len(str(i + 1)))) + str(i + 1)}: {round(stddevs[x], 2)}ms" for x in lowestStddevs]
+    lowestStddevs = [f"Ch{('0' * (2 - len(str(x + 1)))) + str(x + 1)}: {round(stddevs[x], 2)}ms" for x in lowestStddevs]
     infoStrings.append(", ".join(lowestStddevs))
     return "".join(infoStrings)
 
