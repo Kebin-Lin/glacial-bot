@@ -97,8 +97,7 @@ def serverStatusSummary(pingHistory):
     infoStrings.append(", ".join(lowestStddevs))
     return "".join(infoStrings)
 
-async def ping(ip, port = 8585, timeout = TIMEOUT_DURATION):
-    loop = asyncio.get_event_loop()
+async def ping(loop, ip, port = 8585, timeout = TIMEOUT_DURATION):
     start = time.time()
     try:
         req = urllib.request.Request(f"https://{ip}:{port}/")

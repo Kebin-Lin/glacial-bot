@@ -15,10 +15,9 @@ pingHistory = [[] for x in range(len(extrafuncs.CHANNEL_LIST))]
 @tasks.loop(seconds=10.0)
 async def checkPing():
     tasks = []
-    loop = asyncio.get_event_loop()
     for i in extrafuncs.CHANNEL_LIST:
-        tasks.append(loop.create_task(extrafuncs.ping(i)))
-    loop.run_until_complete(asyncio.wait(tasks))
+        tasks.append(client.loop.create_task(extrafuncs.ping(client.loop, i)))
+    client.loop.run_until_complete(asyncio.wait(tasks))
     pings = [x.result() for x in tasks]
     if len(pingHistory[0]) == 60: #Over 10 minutes
         for i in pingHistory:
@@ -27,7 +26,6 @@ async def checkPing():
         pingHistory[i].append(pings[i])
     message = await client.get_channel(STATUS_CHANNEL_ID).fetch_message(STATUS_MESSAGE_ID)
     output = extrafuncs.serverStatusSummary(pingHistory)
-    print(output)
     await message.edit(content = "```" + extrafuncs.serverStatusSummary(pingHistory) + f"\nTimestamp: {str(datetime.datetime.now(datetime.timezone.utc))} UTC```")
 
 @checkPing.before_loop
