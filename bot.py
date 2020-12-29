@@ -1,13 +1,11 @@
 import os, math, asyncio, random, subprocess, datetime
 import discord
 from discord.ext import tasks, commands
-import nest_asyncio
 from util import database, extrafuncs
 
 STATUS_CHANNEL_ID = 793333996380487682
 STATUS_MESSAGE_ID = 793345605484544030
 
-nest_asyncio.apply()
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
 pingHistory = [[] for x in range(len(extrafuncs.CHANNEL_LIST))]
@@ -17,7 +15,7 @@ async def checkPing():
     tasks = []
     for i in extrafuncs.CHANNEL_LIST:
         tasks.append(client.loop.create_task(extrafuncs.ping(client.loop, i)))
-    client.loop.run_until_complete(asyncio.wait(tasks))
+    await asyncio.wait(tasks)
     pings = [x.result() for x in tasks]
     if len(pingHistory[0]) == 60: #Over 10 minutes
         for i in pingHistory:
@@ -26,7 +24,7 @@ async def checkPing():
         pingHistory[i].append(pings[i])
     message = await client.get_channel(STATUS_CHANNEL_ID).fetch_message(STATUS_MESSAGE_ID)
     output = extrafuncs.serverStatusSummary(pingHistory)
-    await message.edit(content = "```" + extrafuncs.serverStatusSummary(pingHistory) + f"\nTimestamp: {str(datetime.datetime.now(datetime.timezone.utc))} UTC```")
+    await message.edit(content = "```" + output + f"\nTimestamp: {str(datetime.datetime.now(datetime.timezone.utc))} UTC```")
 
 @checkPing.before_loop
 async def beforeStartLoopPing():
