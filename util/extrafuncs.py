@@ -1,4 +1,4 @@
-import math, socket, time, urllib.request, asyncio, heapq
+import math, socket, time, aiohttp, asyncio, heapq
 
 CHANNEL_LIST = [
     "35.155.204.207",
@@ -100,8 +100,11 @@ def serverStatusSummary(pingHistory):
 async def ping(loop, ip, port = 8585, timeout = TIMEOUT_DURATION):
     start = time.time()
     try:
-        req = urllib.request.Request(f"https://{ip}:{port}/")
-        await loop.run_in_executor(None, lambda: urllib.request.urlopen(req, timeout = 2))
+        req = f"https://{ip}:{port}/"
+        timeout = aiohttp.ClientTimeout(total = TIMEOUT_DURATION)
+        async with aiohttp.ClientSession(timeout = timeout) as session:
+            async with session.get(req) as response:
+                pass
     except:
         pass
     output = 1000 * (time.time() - start)
