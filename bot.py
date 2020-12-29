@@ -1,10 +1,38 @@
 import os, math, asyncio, random, subprocess, datetime
 import discord
 from discord.ext import tasks, commands
+import nest_asyncio
 from util import database, extrafuncs
 
+STATUS_CHANNEL_ID = 793333996380487682
+STATUS_MESSAGE_ID = 793345605484544030
+
+nest_asyncio.apply()
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
+pingHistory = [[] for x in range(len(extrafuncs.CHANNEL_LIST))]
+
+@tasks.loop(seconds=10.0)
+async def checkPing():
+    tasks = []
+    loop = asyncio.get_event_loop()
+    for i in extrafuncs.CHANNEL_LIST:
+        tasks.append(loop.create_task(extrafuncs.ping(i)))
+    loop.run_until_complete(asyncio.wait(tasks))
+    pings = [x.result() for x in tasks]
+    if len(pingHistory[0]) == 60: #Over 10 minutes
+        for i in pingHistory:
+            i.pop(0)
+    for i in range(len(pings)):
+        pingHistory[i].append(pings[i])
+    message = await client.get_channel(STATUS_CHANNEL_ID).fetch_message(STATUS_MESSAGE_ID)
+    output = extrafuncs.serverStatusSummary(pingHistory)
+    print(output)
+    await message.edit(content = "```" + extrafuncs.serverStatusSummary(pingHistory) + "```")
+
+@checkPing.before_loop
+async def beforeStartLoopPing():
+    await client.wait_until_ready()
 
 @tasks.loop(seconds=60.0)
 async def checkForEvents():
@@ -54,7 +82,7 @@ async def checkForEvents():
         await message.channel.send(None if len(participants) == 0 else participants, embed = discord.Embed.from_dict(embed))
 
 @checkForEvents.before_loop
-async def beforeStartLoop():
+async def beforeStartLoopEvents():
     await client.wait_until_ready()
 
 async def helpFunc(message, splitcontent):
@@ -799,4 +827,5 @@ async def on_raw_reaction_add(payload):
             
 
 checkForEvents.start()
+checkPing.start()
 client.run(os.environ["token"])
