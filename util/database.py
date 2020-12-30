@@ -5,17 +5,26 @@ DATABASE_URL = os.environ['DATABASE_URL']
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 cursor = conn.cursor()
 
-def confirmConnection():
-    global conn, cursor
-    if conn.closed != 0 or cursor.closed:
-        print("Re-established Database Connection.")
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-        cursor = conn.cursor()
+def reconnect(func):
+    def wrapper(*args, **kwargs):
+        global conn, cursor
+        while True:
+            try:
+                return func(*args, **kwargs)
+            except (psycopg2.errors.AdminShutdown, psycopg2.InterfaceError):
+                print("Reconnecting to Database")
+                conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+                cursor = conn.cursor()
+            except:
+                raise
+    return wrapper
 
+@reconnect
 def eventExists(userID, eventName):
     cursor.execute("SELECT 1 FROM events WHERE organizerID = %s AND eventName = %s LIMIT 1", (userID, eventName,))
     return cursor.rowcount != 0
 
+@reconnect
 def createEvent(userID, eventName, eventDateTime, attendeeList, channelID, messageID):
     cursor.execute('''
         INSERT INTO events (organizerID, eventName, eventDateTime, channelID, messageID)
@@ -28,6 +37,7 @@ def createEvent(userID, eventName, eventDateTime, attendeeList, channelID, messa
     conn.commit()
     return True
 
+@reconnect
 def addInvite(userID, eventID, attendeeList):
     numAdded = 0
     for attendeeID in attendeeList:    
@@ -41,6 +51,7 @@ def addInvite(userID, eventID, attendeeList):
         numAdded += 1
     return numAdded
 
+@reconnect
 def acceptInvite(eventID, attendeeID):
     cursor.execute("DELETE FROM pendingEventInvites WHERE eventID = %s AND attendeeID = %s RETURNING 1", (eventID, attendeeID,))
     if cursor.rowcount == 0:
@@ -49,41 +60,50 @@ def acceptInvite(eventID, attendeeID):
     conn.commit()
     return True
 
+@reconnect
 def deleteEvent(eventID):
     cursor.execute("DELETE FROM events WHERE eventID = %s RETURNING 1", (eventID,))
     conn.commit()
     return cursor.rowcount == 1
 
+@reconnect
 def cancelEvent(userID, eventName):
     cursor.execute("DELETE FROM events WHERE organizerID = %s AND eventName = %s RETURNING 1", (userID, eventName,))
     conn.commit()
     return cursor.rowcount == 1
 
+@reconnect
 def getEventFromName(userID, eventName):
     cursor.execute("SELECT * FROM events WHERE organizerID = %s AND eventName = %s LIMIT 1", (userID, eventName))
     return cursor.fetchall()
 
+@reconnect
 def getEventFromInvite(messageID):
     cursor.execute("SELECT * FROM events WHERE messageID = %s LIMIT 1", (messageID,))
     return cursor.fetchall()
 
+@reconnect
 def findEvents(eventDateTime):
     cursor.execute("SELECT * FROM events WHERE eventDateTime = %s", (eventDateTime,))
     return cursor.fetchall()
 
+@reconnect
 def getAcceptedInvites(eventID):
     cursor.execute("SELECT attendeeID FROM acceptedEventInvites WHERE eventID = %s", (eventID,))
     return cursor.fetchall()
 
+@reconnect
 def getPendingInvites(eventID):
     cursor.execute("SELECT attendeeID FROM pendingEventInvites WHERE eventID = %s", (eventID,))
     return cursor.fetchall()
 
+@reconnect
 def reset():
     cursor.execute("DELETE FROM toConfirm")
     cursor.execute("DELETE FROM scores")
     conn.commit()
 
+@reconnect
 def setScore(userID, score, numRaces):
     cursor.execute('''
         INSERT INTO scores (userID, score, numRaces)
@@ -94,6 +114,7 @@ def setScore(userID, score, numRaces):
     ''', (userID, score, numRaces,))
     conn.commit()
 
+@reconnect
 def confirmScore(userID):
     cursor.execute("SELECT score, numRaces FROM toConfirm WHERE userID = %s LIMIT 1", (userID,))
     if cursor.rowcount == 0:
@@ -109,18 +130,22 @@ def confirmScore(userID):
     ''', (userID, toAdd[0], toAdd[1],))
     conn.commit()
 
+@reconnect
 def denyScore(userID):
     cursor.execute("DELETE FROM toConfirm WHERE userID = %s", (userID,))
     conn.commit()
 
+@reconnect
 def getUnconfirmedScores():
     cursor.execute("SELECT * FROM toConfirm")
     return cursor.fetchall()
 
+@reconnect
 def getSortedScores():
     cursor.execute("SELECT * FROM scores ORDER BY score DESC")
     return cursor.fetchall()
 
+@reconnect
 def reportScore(userID, reportedScore):
     cursor.execute('''
         INSERT INTO toConfirm (userID, score, numRaces)
@@ -132,6 +157,7 @@ def reportScore(userID, reportedScore):
     conn.commit()
 
 @atexit.register
+@reconnect
 def saveChanges():
     conn.commit()
     cursor.close()

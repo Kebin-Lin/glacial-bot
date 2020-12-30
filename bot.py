@@ -32,7 +32,6 @@ async def beforeStartLoopPing():
 
 @tasks.loop(seconds=60.0)
 async def checkForEvents():
-    database.confirmConnection()
     currentTime = datetime.datetime.now(datetime.timezone.utc)
     currentTime = currentTime.replace(second = 0, microsecond = 0)
     eventCheckTime = currentTime + datetime.timedelta(minutes = 15)
