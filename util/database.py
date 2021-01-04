@@ -99,7 +99,7 @@ def getPendingInvites(eventID):
 
 @reconnect
 def reset():
-    cursor.execute("DELETE FROM toConfirm")
+    cursor.execute("DELETE FROM pendingScoreReports")
     cursor.execute("DELETE FROM scores")
     conn.commit()
 
@@ -115,46 +115,36 @@ def setScore(userID, score, numRaces):
     conn.commit()
 
 @reconnect
-def confirmScore(userID):
-    cursor.execute("SELECT score, numRaces FROM toConfirm WHERE userID = %s LIMIT 1", (userID,))
-    if cursor.rowcount == 0:
-        return False
-    toAdd = cursor.fetchall()[0]
-    cursor.execute("DELETE FROM toConfirm WHERE userID = %s", (userID,))
+def isPendingReport(messageID):
+    cursor.execute("SELECT 1 FROM pendingScoreReports WHERE messageID = %s", (messageID,))
+    return cursor.rowcount == 1
+
+@reconnect
+def createReport(messageID, channelID):
+    cursor.execute("INSERT INTO pendingScoreReports (messageID, channelID) VALUES (%s, %s)", (messageID, channelID,))
+    conn.commit()
+
+@reconnect
+def removeReport(messageID):
+    cursor.execute("DELETE FROM pendingScoreReports WHERE messageID = %s RETURNING 1", (messageID,))
+    conn.commit()
+    return cursor.rowcount == 1
+
+@reconnect
+def applyScore(userID, score):
     cursor.execute('''
         INSERT INTO scores (userID, score, numRaces)
         VALUES (%s, %s, %s)
         ON CONFLICT (userID)
         DO
             UPDATE SET score = EXCLUDED.score + scores.score, numRaces = EXCLUDED.numRaces + scores.numRaces
-    ''', (userID, toAdd[0], toAdd[1],))
+    ''', (userID, score, 1,))
     conn.commit()
-
-@reconnect
-def denyScore(userID):
-    cursor.execute("DELETE FROM toConfirm WHERE userID = %s", (userID,))
-    conn.commit()
-
-@reconnect
-def getUnconfirmedScores():
-    cursor.execute("SELECT * FROM toConfirm")
-    return cursor.fetchall()
 
 @reconnect
 def getSortedScores():
     cursor.execute("SELECT * FROM scores ORDER BY score DESC")
     return cursor.fetchall()
-
-@reconnect
-def reportScore(userID, reportedScore):
-    cursor.execute('''
-        INSERT INTO toConfirm (userID, score, numRaces)
-        VALUES (%s, %s, %s)
-        ON CONFLICT (userID)
-        DO
-            UPDATE SET score = EXCLUDED.score + toConfirm.score, numRaces = EXCLUDED.numRaces + toConfirm.numRaces
-    ''', (userID, reportedScore, 1,))
-    conn.commit()
 
 @atexit.register
 @reconnect

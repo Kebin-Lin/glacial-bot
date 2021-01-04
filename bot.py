@@ -126,129 +126,14 @@ async def reportFunc(message, splitcontent):
     if len(splitcontent) < 3:
         await message.channel.send("No score supplied")
         return
-    score = 0
     try:
-        score = int(splitcontent[2])
+        int(splitcontent[2])
     except:
         await message.channel.send("Invalid score supplied")
         return
-    database.reportScore(message.author.id, score)
+    database.createReport(message.id, message.channel.id)
     await message.add_reaction('✅')
-
-async def confirmFunc(message, splitcontent):
-    leadermanrole = discord.utils.find(lambda r: r.name == "Leader Man", message.guild.roles)
-    jrrole = discord.utils.find(lambda r: r.name == "Jrs", message.guild.roles)
-    if not (leadermanrole in message.author.roles or jrrole in message.author.roles):
-        await message.channel.send('You do not have the role for this command')
-        return
-
-    embed = {
-        "color" : 7855479,
-        "author" : {
-            "name" : "Scores to Confirm",
-            "icon_url" : str(client.user.avatar_url)
-        },
-        "fields" : []
-    }
-    scores = database.getUnconfirmedScores()
-    offset = 0
-    reactions = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','◀️','▶️','❌']
-    confirmedSet = set()
-    deniedSet = set()
-
-    if len(scores) == 0:
-        embed['fields'].append({
-            'name' : '\u200b',
-            'value' : 'No scores found'
-        })
-        await message.channel.send(embed = discord.Embed.from_dict(embed))
-        return
-
-    embed['footer'] = {"text" : "✅ Confirm mode active"}
-
-    def setupPage(embed, scores):
-        embed["fields"] = []
-        formattedScores = []
-        emotectr = 0
-        for i in scores[offset : offset + 10]:
-            formattedScores.append(f"{'✅' if offset + emotectr in confirmedSet else '❌' if offset + emotectr in deniedSet else reactions[emotectr]} **{str(client.get_user(i[0]))}** - {i[1]} points over {i[2]} race(s)")
-            emotectr += 1
-        embed['fields'].append({
-            'name' : '\u200b',
-            'value' : '\n'.join(formattedScores)
-        })
-    
-    setupPage(embed, scores)
-    sentMsg = await message.channel.send(embed = discord.Embed.from_dict(embed))
-    for i in range(min(10, len(scores))):
-        await sentMsg.add_reaction(reactions[i])
-    for i in range(10, 13):
-        await sentMsg.add_reaction(reactions[i])
-    
-    waitForReaction = True
-    denyMode = False
-
-    def check(reaction, user):
-        return reaction.message.id == sentMsg.id and user == message.author and str(reaction.emoji) in reactions
-
-    while waitForReaction:
-        try:
-            done, pending = await asyncio.wait(
-                [
-                    client.wait_for('reaction_add', check = check),
-                    client.wait_for('reaction_remove', check = check)
-                ],
-                return_when = asyncio.FIRST_COMPLETED,
-                timeout = 30,
-            )
-            #Cancel other task
-            gather = asyncio.gather(*pending)
-            gather.cancel()
-            try:
-                await gather
-            except asyncio.CancelledError:
-                pass
-            if len(done) == 0:
-                raise asyncio.TimeoutError('No change in reactions')
-            reaction = done.pop().result()[0]
-        except asyncio.TimeoutError:
-            waitForReaction = False
-            embed['color'] = 0xff6961
-            await sentMsg.edit(embed = discord.Embed.from_dict(embed))
-        else:
-            emote = str(reaction.emoji)
-            match = -1
-            for i in range(12, -1, -1): #Search for matching emote in emote list
-                if reactions[i] == emote:
-                    match = i
-                    break
-            if match == 12: #Toggle deny mode
-                denyMode = not denyMode
-                if denyMode:
-                    embed['footer'] = {'text' : '❌ Deny mode active'}
-                else:
-                    embed['footer'] = {'text' : '✅ Confirm mode active'}
-                await sentMsg.edit(embed = discord.Embed.from_dict(embed))
-            elif match == 11: #Next page
-                if offset + 10 < len(scores):
-                    offset += 10
-                    setupPage(embed, scores)
-                    await sentMsg.edit(embed = discord.Embed.from_dict(embed))
-            elif match == 10: #Previous page
-                if offset - 10 >= 0:
-                    offset -= 10
-                    setupPage(embed, scores)
-                    await sentMsg.edit(embed = discord.Embed.from_dict(embed))
-            else:
-                if offset + match < len(scores) and offset + match not in confirmedSet:
-                    if denyMode:
-                        deniedSet.add(offset + match)
-                        database.denyScore(scores[offset + match][0])
-                    else:
-                        confirmedSet.add(offset + match)
-                        database.confirmScore(scores[offset + match][0])
-                    setupPage(embed, scores)
-                    await sentMsg.edit(embed = discord.Embed.from_dict(embed))
+    await message.add_reaction('❌')
 
 async def leaderboardFunc(message, splitcontent):
     embed = {
@@ -708,11 +593,6 @@ COMMAND_SET = {
         'usage' : '!gb report <score>',
         'function' : reportFunc
     },
-    'confirm' : {
-        'helpmsg' : 'Opens menu to confirm scores (JR+ only)',
-        'usage' : '!gb confirm',
-        'function' : confirmFunc
-    },
     'leaderboard' : {
         'helpmsg' : 'Opens the score leaderboard (only considers already confirmed scores)',
         'usage' : '!gb leaderboard',
@@ -790,7 +670,7 @@ async def on_message(message):
 @client.event
 async def on_raw_reaction_add(payload):
     message = await client.get_channel(payload.channel_id).fetch_message(payload.message_id)
-    if message.author.id == client.user.id:
+    if message.author == client.user: #Event Invites
         eventInfo = database.getEventFromInvite(message.id)
         if len(eventInfo) != 0:
             eventInfo = eventInfo[0]
@@ -825,8 +705,22 @@ async def on_raw_reaction_add(payload):
                     ]
                 }
                 await message.edit(embed = discord.Embed.from_dict(embed))
-
-            
+    else:
+        leadermanrole = discord.utils.find(lambda r: r.name == "Leader Man", message.guild.roles)
+        jrrole = discord.utils.find(lambda r: r.name == "Jrs", message.guild.roles)
+        if database.isPendingReport(payload.message_id) and (leadermanrole in payload.member.roles or jrrole in payload.member.roles):
+            emoji = str(payload.emoji)
+            if emoji == '✅':
+                database.removeReport(message.id)
+                try:
+                    score = int(message.content.split()[2])
+                    database.applyScore(message.author.id, score)
+                    await message.remove_reaction('❌', client.user)
+                except:
+                    await message.add_reaction('🚫')
+            elif emoji == '❌':
+                database.removeReport(message.id)
+                await message.remove_reaction('✅', client.user)
 
 checkForEvents.start()
 checkPing.start()
