@@ -23,15 +23,15 @@ async def checkPing():
     for i in range(len(pings)):
         pingHistory[i].append(pings[i])
     message = None
+    output = extrafuncs.serverStatusSummary(pingHistory)
     while True:
         try:
             message = await client.get_channel(STATUS_CHANNEL_ID).fetch_message(STATUS_MESSAGE_ID)
+            await message.edit(content = "```" + output + f"\nTimestamp: {str(datetime.datetime.now(datetime.timezone.utc))} UTC```")
             break
         except discord.errors.DiscordServerError:
-            print("Failed to fetch message to update the server status tracker. Trying again.")
+            print("Failed to update the server status tracker. Trying again.")
             continue
-    output = extrafuncs.serverStatusSummary(pingHistory)
-    await message.edit(content = "```" + output + f"\nTimestamp: {str(datetime.datetime.now(datetime.timezone.utc))} UTC```")
 
 @checkPing.before_loop
 async def beforeStartLoopPing():
