@@ -669,6 +669,8 @@ async def on_message(message):
 
 @client.event
 async def on_raw_reaction_add(payload):
+    if payload.user_id == client.user.id:
+        return
     message = await client.get_channel(payload.channel_id).fetch_message(payload.message_id)
     if message.author == client.user: #Event Invites
         eventInfo = database.getEventFromInvite(message.id)
