@@ -548,9 +548,9 @@ async def inviteFunc(message, splitcontent):
     eventInfo = eventInfo[0]
     numAdded = database.addInvite(organizer, eventInfo[0], participants)
     if numAdded != 0:
-        await message.channel.send(f"{numAdded} new participant(s) invited.\nHere is the link to the original invite to accept the invite:\nhttps://discord.com/channels/{message.guild.id}/{eventInfo[4]}/{eventInfo[5]}")
+        originalInvite = await client.get_channel(eventInfo[4]).fetch_message(eventInfo[5])
+        await originalInvite.reply(f"{numAdded} new participant(s) invited.\nClick on the reply to jump to the original invite.")
         #Update invite message
-        message = await client.get_channel(eventInfo[4]).fetch_message(eventInfo[5])
         participants = [x[0] for x in database.getAcceptedInvites(eventInfo[0])]
         pending = [x[0] for x in database.getPendingInvites(eventInfo[0])]
         embed = {
@@ -578,7 +578,7 @@ async def inviteFunc(message, splitcontent):
                 }
             ]
         }
-        await message.edit(embed = discord.Embed.from_dict(embed))
+        await originalInvite.edit(embed = discord.Embed.from_dict(embed))
     else:
         await message.channel.send("No new participants invited.")
 
