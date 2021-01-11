@@ -459,6 +459,8 @@ async def sfrollFunc(message, splitcontent):
     await sfcalcFunc(message, splitcontent, numTrials = 1)
 
 async def scheduleFunc(message, splitcontent):
+    if len(splitcontent) < 5:
+        await message.channel.send("Missing field(s). Usage: !gb schedule <event name> <event time (Monday,+2 for Monday, Reset + 2 hours)> <participant1> <participant2> ...")
     weekdays = {
         'monday' : 0, 'mon' : 0, 'tuesday' : 1, 'tues' : 1, 'wednesday' : 2, 'wed' : 2, 'thursday' : 3, 'thurs' : 3,
         'friday' : 4, 'fri' : 4, 'saturday' : 5, 'sat' : 5, 'sunday' : 6, 'sun' : 6
@@ -608,7 +610,7 @@ COMMAND_SET = {
     },
     'setscore' : {
         'helpmsg' : 'Sets the score of a user (JR+ only)',
-        'usage' : '!gb setScore @target <score> <number of races>',
+        'usage' : '!gb setscore @target <score> <number of races>',
         'function' : setscoreFunc
     },
     'raffle' : {
