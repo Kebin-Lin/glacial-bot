@@ -1,4 +1,4 @@
-import math, socket, time, aiohttp, asyncio, heapq
+import math, socket, time, aiohttp, asyncio, heapq, datetime
 
 CHANNEL_LIST = [
     "35.155.204.207",
@@ -44,6 +44,16 @@ ABBREVIATION_DICT = {
     't' : 1000000000000,
     'tril' : 1000000000000
 }
+WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+def utcToResetDelta(utcdatetime):
+    resetDelta = utcdatetime.hour + (utcdatetime.minute / 60)
+    dayOffset = -1
+    if resetDelta > 12:
+        dayOffset = 0
+        resetDelta = resetDelta - 24
+    return f"{WEEKDAYS[utcdatetime.weekday() + dayOffset]} Reset {'+' if resetDelta > 0 else ''}{resetDelta}"
+
 
 def roundSig(n):
     if n == 0:

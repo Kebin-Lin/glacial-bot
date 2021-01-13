@@ -70,7 +70,7 @@ async def checkForEvents():
         message = await client.get_channel(event[4]).fetch_message(event[5])
         participants = " ".join(client.get_user(x[0]).mention for x in database.getAcceptedInvites(event[0]))
         embed["fields"][0]["value"] = event[2]
-        embed["fields"][1]["value"] = str(event[3])
+        embed["fields"][1]["value"] = extrafuncs.utcToResetDelta(event[3])
         embed["fields"][2]["value"] = "None" if len(participants) == 0 else participants
         await message.channel.send(None if len(participants) == 0 else participants, embed = discord.Embed.from_dict(embed))
         database.deleteEvent(event[0])
@@ -79,7 +79,7 @@ async def checkForEvents():
         message = await client.get_channel(event[4]).fetch_message(event[5])
         participants = " ".join(client.get_user(x[0]).mention for x in database.getAcceptedInvites(event[0]))
         embed["fields"][0]["value"] = event[2]
-        embed["fields"][1]["value"] = str(event[3])
+        embed["fields"][1]["value"] = extrafuncs.utcToResetDelta(event[3])
         embed["fields"][2]["value"] = "None" if len(participants) == 0 else participants
         await message.channel.send(None if len(participants) == 0 else participants, embed = discord.Embed.from_dict(embed))
 
@@ -512,7 +512,7 @@ async def scheduleFunc(message, splitcontent):
             },
             {
                 "name" : "Time",
-                "value" : str(eventTime)
+                "value" : extrafuncs.utcToResetDelta(eventTime)
             },
             {
                 "name" : "Participants",
@@ -568,7 +568,7 @@ async def inviteFunc(message, splitcontent):
                 },
                 {
                     "name" : "Time",
-                    "value" : str(eventInfo[3])
+                    "value" : extrafuncs.utcToResetDelta(eventInfo[3])
                 },
                 {
                     "name" : "Participants",
@@ -696,7 +696,7 @@ async def on_raw_reaction_add(payload):
                         },
                         {
                             "name" : "Time",
-                            "value" : str(eventTime)
+                            "value" : extrafuncs.utcToResetDelta(eventTime)
                         },
                         {
                             "name" : "Participants",
