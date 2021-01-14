@@ -383,7 +383,8 @@ async def sfcalcFunc(message, splitcontent, numTrials = 1000):
         safeguard = int("safeguard" in optionalArgs)
         fivetenfifteen = int("5/10/15" in optionalArgs)
         thirtyperc = int("30%" in optionalArgs)
-        process = subprocess.Popen(["./sfcalc", str(start), str(goal), str(equiplv), str(numTrials), str(discount), str(safeguard), str(fivetenfifteen), str(thirtyperc)], stdout = subprocess.PIPE)
+        starcatch = int("starcatch" in optionalArgs)
+        process = subprocess.Popen(["./sfcalc", str(start), str(goal), str(equiplv), str(numTrials), str(discount), str(safeguard), str(fivetenfifteen), str(thirtyperc), str(starcatch)], stdout = subprocess.PIPE)
         avgMeso = process.stdout.readline().decode('utf-8').strip()
         avgBooms = process.stdout.readline().decode('utf-8').strip()
         noBoomRate = process.stdout.readline().decode('utf-8').strip()
@@ -396,6 +397,8 @@ async def sfcalcFunc(message, splitcontent, numTrials = 1000):
             activeOptions.append("5/10/15")
         if (thirtyperc):
             activeOptions.append("30%")
+        if (starcatch):
+            activeOptions.append("Starcatch")
         if len(activeOptions) == 0:
             activeOptions.append("None")
         embed = {

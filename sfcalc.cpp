@@ -7,7 +7,7 @@
 
 enum EnhanceStates {SUCCESS, MAINTAIN, DECREASE, DESTROY};
 
-const double chances[22][4] = { //x -> x+1
+const double CHANCES[22][4] = { //x -> x+1
     {.95, .05, 0, 0}, //0
     {.9, .1, 0, 0}, //1
     {.85, .15, 0, 0}, //2
@@ -32,6 +32,31 @@ const double chances[22][4] = { //x -> x+1
     {.3, 0, .63, .07} //21
 };
 
+const double CHANCES_STARCATCH[22][4] = {
+    {0.99275, 0.00725, 0.0, 0.0},
+    {0.9405, 0.0595, 0.0, 0.0},
+    {0.88825, 0.11175, 0.0, 0.0},
+    {0.88825, 0.11175, 0.0, 0.0},
+    {0.836, 0.164, 0.0, 0.0},
+    {0.78375, 0.21625, 0.0, 0.0},
+    {0.7315, 0.2685, 0.0, 0.0},
+    {0.67925, 0.32075, 0.0, 0.0},
+    {0.627, 0.373, 0.0, 0.0},
+    {0.57475, 0.42525, 0.0, 0.0},
+    {0.5225, 0.4775, 0.0, 0.0},
+    {0.47025, 0.0, 0.52975, 0.0},
+    {0.418, 0.0, 0.57618, 0.00582},
+    {0.36575, 0.0, 0.621565, 0.012685},
+    {0.3135, 0.0, 0.67277, 0.01373},
+    {0.3135, 0.665905, 0.0, 0.020595},
+    {0.3135, 0.0, 0.665905, 0.020595},
+    {0.3135, 0.0, 0.665905, 0.020595},
+    {0.3135, 0.0, 0.65904, 0.02746},
+    {0.3135, 0.0, 0.65904, 0.02746},
+    {0.3135, 0.61785, 0.0, 0.06865},
+    {0.3135, 0.0, 0.61785, 0.06865}
+};
+
 const double hundredPerc[4] = {1, 0, 0, 0};
 
 int roundHund(double n) {
@@ -53,7 +78,7 @@ int costFormula(int currStar, int equiplv) {
     }
 }
 
-void trial(int start, int goal, int equiplv, bool safeguard, bool fivetenfifteen, bool thirtyperc, long& totalCost, int& totalBooms, int* savedCosts) {
+void trial(int start, int goal, int equiplv, bool safeguard, bool fivetenfifteen, bool thirtyperc, const double (&chances)[22][4], long& totalCost, int& totalBooms, int* savedCosts) {
     int currStar = start;
     long mesos = 0;
     int numConsecFails = 0;
@@ -122,7 +147,7 @@ void trial(int start, int goal, int equiplv, bool safeguard, bool fivetenfifteen
     totalBooms += booms;
 }
 
-void runTrials(int start, int goal, int equiplv, int numTrials, double discount, bool safeguard, bool fivetenfifteen, bool thirtyperc,
+void runTrials(int start, int goal, int equiplv, int numTrials, double discount, bool safeguard, bool fivetenfifteen, bool thirtyperc, bool starcatch,
                long& avgCost, double& avgBooms, double& noBoomRate, std::vector<long>& mesoPercentiles, std::vector<int>& boomPercentiles) {
     long totalCost = 0;
     int totalBooms = 0;
@@ -135,7 +160,7 @@ void runTrials(int start, int goal, int equiplv, int numTrials, double discount,
     for (int i = 0; i < numTrials; i++) {
         long mesoCost = 0;
         int numBooms = 0;
-        trial(start, goal, equiplv, safeguard, fivetenfifteen, thirtyperc, mesoCost, numBooms, &savedCosts[0]);
+        trial(start, goal, equiplv, safeguard, fivetenfifteen, thirtyperc, starcatch ? CHANCES_STARCATCH : CHANCES, mesoCost, numBooms, &savedCosts[0]);
         mesoVector.push_back(mesoCost);
         boomVector.push_back(numBooms);
         totalCost += mesoCost;
@@ -165,7 +190,7 @@ int main(int argc, char *argv[]) {
         std::vector<long> mesoPercentiles;
         std::vector<int> boomPercentiles;
         runTrials(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]), std::stoi(argv[4]),
-                  std::stod(argv[5]), std::stoi(argv[6]), std::stoi(argv[7]), std::stoi(argv[8]),
+                  std::stod(argv[5]), std::stoi(argv[6]), std::stoi(argv[7]), std::stoi(argv[8]), std::stoi(argv[9]),
                   avgCost, avgBooms, noBoomRate, mesoPercentiles, boomPercentiles);
         std::cout << avgCost << std::endl << avgBooms << std::endl << noBoomRate << std::endl;
         for(int i = 0; i < mesoPercentiles.size(); i++) {
