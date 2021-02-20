@@ -78,7 +78,7 @@ int costFormula(int currStar, int equiplv) {
     }
 }
 
-void trial(int start, int goal, int equiplv, bool safeguard, bool fivetenfifteen, bool thirtyperc, const double (&chances)[22][4], long& totalCost, int& totalBooms, int* savedCosts) {
+void trial(int start, int goal, int equiplv, bool safeguard, bool fivetenfifteen, bool thirtyperc, bool plustwo, const double (&chances)[22][4], long& totalCost, int& totalBooms, int* savedCosts) {
     int currStar = start;
     long mesos = 0;
     int numConsecFails = 0;
@@ -118,6 +118,11 @@ void trial(int start, int goal, int equiplv, bool safeguard, bool fivetenfifteen
         // std::cout << mode << std::endl;
         switch (mode) {
             case SUCCESS:
+                if (plustwo) {
+                    if (currStar <= 10) {
+                        currStar++;
+                    }
+                }
                 currStar++;
                 break;
             case MAINTAIN:
@@ -147,7 +152,7 @@ void trial(int start, int goal, int equiplv, bool safeguard, bool fivetenfifteen
     totalBooms += booms;
 }
 
-void runTrials(int start, int goal, int equiplv, int numTrials, double discount, bool safeguard, bool fivetenfifteen, bool thirtyperc, bool starcatch,
+void runTrials(int start, int goal, int equiplv, int numTrials, double discount, bool safeguard, bool fivetenfifteen, bool thirtyperc, bool starcatch, bool plustwo,
                long& avgCost, double& avgBooms, double& noBoomRate, std::vector<long>& mesoPercentiles, std::vector<int>& boomPercentiles) {
     long totalCost = 0;
     int totalBooms = 0;
@@ -160,7 +165,7 @@ void runTrials(int start, int goal, int equiplv, int numTrials, double discount,
     for (int i = 0; i < numTrials; i++) {
         long mesoCost = 0;
         int numBooms = 0;
-        trial(start, goal, equiplv, safeguard, fivetenfifteen, thirtyperc, starcatch ? CHANCES_STARCATCH : CHANCES, mesoCost, numBooms, &savedCosts[0]);
+        trial(start, goal, equiplv, safeguard, fivetenfifteen, thirtyperc, plustwo, starcatch ? CHANCES_STARCATCH : CHANCES, mesoCost, numBooms, &savedCosts[0]);
         mesoVector.push_back(mesoCost);
         boomVector.push_back(numBooms);
         totalCost += mesoCost;
@@ -189,8 +194,8 @@ int main(int argc, char *argv[]) {
         double noBoomRate;
         std::vector<long> mesoPercentiles;
         std::vector<int> boomPercentiles;
-        runTrials(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]), std::stoi(argv[4]),
-                  std::stod(argv[5]), std::stoi(argv[6]), std::stoi(argv[7]), std::stoi(argv[8]), std::stoi(argv[9]),
+        runTrials(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]), std::stoi(argv[4]), std::stod(argv[5]),
+                  std::stoi(argv[6]), std::stoi(argv[7]), std::stoi(argv[8]), std::stoi(argv[9]), std::stoi(argv[10]),
                   avgCost, avgBooms, noBoomRate, mesoPercentiles, boomPercentiles);
         std::cout << avgCost << std::endl << avgBooms << std::endl << noBoomRate << std::endl;
         for(int i = 0; i < mesoPercentiles.size(); i++) {
