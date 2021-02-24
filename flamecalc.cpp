@@ -30,7 +30,7 @@ const double STAT_TIER_VALS[14][7] = {
     {14, 28, 42, 56, 70, 84, 98} //260-275
 };
 
-const int USAGE_LIMIT = 10000;
+const int USAGE_LIMIT = 100000;
 
 void useFlame(int lvbracket, bool flameAdvantage, int& statOutput, int& statPercOutput, int& dmgOutput, int& attOutput, const double (&tierRates)[5], std::vector<FlameLines>& possibleLines) {
     int numLines = flameAdvantage ? 4 : std::rand() % 4 + 1;
