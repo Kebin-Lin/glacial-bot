@@ -186,7 +186,7 @@ void runTrials(int start, int goal, int equiplv, int numTrials, double discount,
 int main(int argc, char *argv[]) {
     std::srand(time(NULL));
 
-    if (argc < 9) {
+    if (argc < 11) {
         std::cout << "Error" << std::endl << "Error" << std::endl << "Error" << std::endl;
     } else {
         long avgCost;

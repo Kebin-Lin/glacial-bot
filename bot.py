@@ -464,6 +464,104 @@ async def sfcalcFunc(message, splitcontent, numTrials = 1000):
 async def sfrollFunc(message, splitcontent):
     await sfcalcFunc(message, splitcontent, numTrials = 1)
 
+async def flamecalcFunc(message, splitcontent, numTrials = 1000):
+    # try:
+        equipType = splitcontent[2]
+        if (equipType != 'weapon' and equipType != 'armor'):
+            await message.channel.send('Invalid item type')
+            return
+        equiplv = int(splitcontent[3])
+        if (equiplv < 1 or equiplv > 200):
+            await message.channel.send('Invalid item level')
+            return
+        flameTarget = int(splitcontent[4])
+        if (flameTarget < 0):
+            await message.channel.send('Invalid flame score goal')
+            return
+        damageTarget = int(splitcontent[5]) if equipType == 'weapon' else 0
+        if (damageTarget < 0):
+            await message.channel.send('Invalid damage goal')
+            return
+        attTarget = int(splitcontent[6]) if equipType == 'weapon' else 0
+        if (attTarget < 0):
+            await message.channel.send('Invalid (M)ATT goal')
+            return
+        optionalArgs = splitcontent[7 if equipType == 'weapon' else 5:]
+        userainbow = int("rainbow" in optionalArgs)
+        advantage = int("flameadvantage" in optionalArgs)
+        process = subprocess.Popen(["./flamecalc", str(equiplv), str(advantage), str(flameTarget), str(damageTarget), str(attTarget), str(numTrials), str(userainbow)], stdout = subprocess.PIPE)
+        avgUsage = process.stdout.readline().decode('utf-8').strip()
+        if (avgUsage == '-1'):
+            await message.channel.send('Goal too unlikely or impossible (no desired result in 10000 flames used)')
+            return
+        usagePercentiles = process.stdout.readline().decode('utf-8').strip()
+        activeOptions = []
+        if (advantage):
+            activeOptions.append("Flame Advantage")
+        if (userainbow):
+            activeOptions.append("Use Rainbow Flames")
+        if len(activeOptions) == 0:
+            activeOptions.append("None")
+        embed = {
+            "color" : 7855479,
+            "author" : {
+                "name" : "Flame Calculator",
+                "icon_url" : str(client.user.avatar_url)
+            },
+            "fields" : [
+                {
+                    "name" : "Item Type",
+                    "value" : equipType.capitalize(),
+                    "inline" : True
+                },
+                {
+                    "name" : "Flame Score Goal",
+                    "value" : flameTarget,
+                    "inline" : True
+                }
+            ]
+        }
+        if (equipType == 'weapon') :
+            embed['fields'].extend([
+                {
+                    "name" : "Damage Goal",
+                    "value" : damageTarget,
+                    "inline" : True
+                },
+                {
+                    "name" : "(M)ATT Tier Goal",
+                    "value" : attTarget,
+                    "inline" : True
+                }
+            ])
+        embed['fields'].extend([
+            {
+                "name" : "Item Level",
+                "value" : equiplv,
+                "inline" : True
+            },
+            {
+                "name" : "Active Options",
+                "value" : "\n".join(activeOptions)
+            },
+            {
+                "name" : "Average Flames Consumed",
+                "value" : avgUsage
+            }
+        ])
+        formattedUsagePercentiles = ''
+        for i in usagePercentiles.split():
+            formattedUsagePercentiles += i + (' ' * (8 - len(i)))
+        embed['fields'].append({
+            "name" : "Usage Percentiles",
+            "value" : f"```75%     85%     95%\n{formattedUsagePercentiles}```"
+        })
+        await message.channel.send(embed = discord.Embed.from_dict(embed))
+        return
+    # except:
+    #     await message.channel.send('Invalid input')
+    #     return
+
 async def scheduleFunc(message, splitcontent):
     if len(splitcontent) < 5:
         await message.channel.send("Missing field(s). Usage: !gb schedule <event name> <event time (Monday,+2 for Monday, Reset + 2 hours)> <participant1> <participant2> ...")
@@ -633,6 +731,11 @@ COMMAND_SET = {
         'helpmsg' : 'Simulates one roll for starforce',
         'usage' : '!gb sfroll <start stars> <target stars> <item level> Optional: safeguard 5/10/15 30% starcatch +2',
         'function' : sfrollFunc
+    },
+    'flamecalc' : {
+        'helpmsg' : 'Simulates flaming',
+        'usage' : '!gb flamecalc weapon <item level> <flame score goal> <damage goal> <(m)att tier goal>\nOr: !gb flamecalc armor <item level> <flame score goal>\nOptional: rainbow, flameadvantage',
+        'function' : flamecalcFunc
     },
     'schedule' : {
         'helpmsg' : 'Schedules an event',
