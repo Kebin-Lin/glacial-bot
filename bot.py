@@ -492,7 +492,7 @@ async def flamecalcFunc(message, splitcontent, numTrials = 1000):
         process = subprocess.Popen(["./flamecalc", str(equiplv), str(advantage), str(flameTarget), str(damageTarget), str(attTarget), str(numTrials), str(userainbow)], stdout = subprocess.PIPE)
         avgUsage = process.stdout.readline().decode('utf-8').strip()
         if (avgUsage == '-1'):
-            await message.channel.send('Goal too unlikely or impossible (no desired result in 10000 flames used)')
+            await message.channel.send('Goal too unlikely or impossible (no desired result in 100k flames used for at least one trial)')
             return
         usagePercentiles = process.stdout.readline().decode('utf-8').strip()
         activeOptions = []
