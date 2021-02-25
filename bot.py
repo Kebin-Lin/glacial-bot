@@ -566,7 +566,7 @@ async def scheduleFunc(message, splitcontent):
     if len(splitcontent) < 5:
         await message.channel.send("Missing field(s). Usage: !gb schedule <event name> <event time (Monday,+2 for Monday, Reset + 2 hours)> <participant1> <participant2> ...")
     weekdays = {
-        'monday' : 0, 'mon' : 0, 'tuesday' : 1, 'tues' : 1, 'wednesday' : 2, 'wed' : 2, 'thursday' : 3, 'thurs' : 3,
+        'monday' : 0, 'mon' : 0, 'tuesday' : 1, 'tues' : 1, 'tue' : 1, 'wednesday' : 2, 'wed' : 2, 'thursday' : 3, 'thurs' : 3, 'thu' : 3,
         'friday' : 4, 'fri' : 4, 'saturday' : 5, 'sat' : 5, 'sunday' : 6, 'sun' : 6
     }
     organizer = message.author.id
