@@ -565,6 +565,7 @@ async def flamecalcFunc(message, splitcontent, numTrials = 1000):
 async def scheduleFunc(message, splitcontent):
     if len(splitcontent) < 5:
         await message.channel.send("Missing field(s). Usage: !gb schedule <event name> <event time (Monday,+2 for Monday, Reset + 2 hours)> <participant1> <participant2> ...")
+        return
     weekdays = {
         'monday' : 0, 'mon' : 0, 'tuesday' : 1, 'tues' : 1, 'tue' : 1, 'wednesday' : 2, 'wed' : 2, 'thursday' : 3, 'thurs' : 3, 'thu' : 3,
         'friday' : 4, 'fri' : 4, 'saturday' : 5, 'sat' : 5, 'sunday' : 6, 'sun' : 6
@@ -591,7 +592,7 @@ async def scheduleFunc(message, splitcontent):
     eventTime = today + datetime.timedelta(days = daysUntil, hours = eventTime[1])
     eventTime = eventTime.replace(second = 0, microsecond = 0)
     if eventTime <= datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes = 15):
-        if eventTime <= datetime.datetime.now(datetime.timezone.utc) and daysUntil == 0:
+        if eventTime <= datetime.datetime.now(datetime.timezone.utc) and daysUntil <= 1:
             eventTime = eventTime + datetime.timedelta(days = 7)
         else:
             await message.channel.send("You cannot schedule an event that is 15 minutes or less away.")
