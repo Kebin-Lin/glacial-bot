@@ -3,6 +3,9 @@ import discord
 from discord.ext import tasks, commands
 from util import database, extrafuncs
 
+TEST_MODE = False
+TEST_SERVER_ID = 682341452184813599
+
 STATUS_CHANNEL_ID = 793333996380487682
 STATUS_MESSAGE_ID = 793345605484544030
 
@@ -597,7 +600,10 @@ async def scheduleFunc(message, splitcontent):
         else:
             await message.channel.send("You cannot schedule an event that is 15 minutes or less away.")
             return
-    participants = [x.id for x in message.mentions]
+    participants = set(x.id for x in message.mentions).union(
+                   set(member.id for role in message.role_mentions
+                       for member in role.members)
+                   )
     if len(participants) == 0:
         await message.channel.send("No participants provided.")
         return
@@ -760,10 +766,14 @@ print("Starting Bot")
 @client.event
 async def on_ready():
     print(f'Logged on as {client.user}')
+    if TEST_MODE:
+        print('Test mode is on')
     await client.change_presence(activity = discord.Game(name = 'Use "!gb help" for a list of commands'))
 
 @client.event
 async def on_message(message):
+    if TEST_MODE and message.guild.id != TEST_SERVER_ID:
+        return
     if message.author == client.user or message.guild is False: #Ignore messages by self and in DMs
         return
 
@@ -781,6 +791,8 @@ async def on_message(message):
 
 @client.event
 async def on_raw_reaction_add(payload):
+    if TEST_MODE and payload.guild_id != TEST_SERVER_ID:
+        return
     if payload.user_id == client.user.id:
         return
     message = await client.get_channel(payload.channel_id).fetch_message(payload.message_id)
