@@ -3,7 +3,7 @@ import discord
 from discord.ext import tasks, commands
 from util import database, extrafuncs
 
-TEST_MODE = True
+TEST_MODE = bool(os.environ["testMode"])
 TEST_SERVER_ID = 682341452184813599
 
 STATUS_CHANNEL_ID = 793333996380487682
