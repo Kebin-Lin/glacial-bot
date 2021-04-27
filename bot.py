@@ -3,7 +3,7 @@ import discord
 from discord.ext import tasks, commands
 from util import database, extrafuncs
 
-TEST_MODE = False
+TEST_MODE = True
 TEST_SERVER_ID = 682341452184813599
 
 STATUS_CHANNEL_ID = 793333996380487682
@@ -388,12 +388,9 @@ async def sfcalcFunc(message, splitcontent, numTrials = 1000):
         thirtyperc = int("30%" in optionalArgs)
         starcatch = int("starcatch" in optionalArgs)
         plustwo = int("+2" in optionalArgs)
-        process = subprocess.Popen(["./sfcalc", str(start), str(goal), str(equiplv), str(numTrials), str(discount), str(safeguard), str(fivetenfifteen), str(thirtyperc), str(starcatch), str(plustwo)], stdout = subprocess.PIPE)
-        avgMeso = process.stdout.readline().decode('utf-8').strip()
-        avgBooms = process.stdout.readline().decode('utf-8').strip()
-        noBoomRate = process.stdout.readline().decode('utf-8').strip()
-        mesoPercentiles = process.stdout.readline().decode('utf-8').strip()
-        boomPercentiles = process.stdout.readline().decode('utf-8').strip()
+        process = await asyncio.create_subprocess_shell(f"./sfcalc {start} {goal} {equiplv} {numTrials} {discount} {safeguard} {fivetenfifteen} {thirtyperc} {starcatch} {plustwo}", stdout = asyncio.subprocess.PIPE)
+        stdout, stderr = await process.communicate()
+        avgMeso, avgBooms, noBoomRate, mesoPercentiles, boomPercentiles = stdout.decode('utf-8').strip().split("\n")
         activeOptions = []
         if (safeguard):
             activeOptions.append("Safeguard")
@@ -492,12 +489,13 @@ async def flamecalcFunc(message, splitcontent, numTrials = 1000):
         optionalArgs = splitcontent[7 if equipType == 'weapon' else 5:]
         userainbow = int("rainbow" in optionalArgs)
         advantage = int("flameadvantage" in optionalArgs)
-        process = subprocess.Popen(["./flamecalc", str(equiplv), str(advantage), str(flameTarget), str(damageTarget), str(attTarget), str(numTrials), str(userainbow)], stdout = subprocess.PIPE)
-        avgUsage = process.stdout.readline().decode('utf-8').strip()
+        process = await asyncio.create_subprocess_shell(f"./flamecalc {equiplv} {advantage} {flameTarget} {damageTarget} {attTarget} {numTrials} {userainbow}", stdout = asyncio.subprocess.PIPE)
+        procmessage = await message.channel.send('Processing...')
+        stdout, stderr = await process.communicate()
+        avgUsage, usagePercentiles = stdout.decode('utf-8').strip().split("\n")
         if (avgUsage == '-1'):
-            await message.channel.send('Goal too unlikely or impossible (no desired result in 100k flames used for at least one trial)')
+            await procmessage.edit(content = 'Goal too unlikely or impossible (no desired result in 100k flames used for at least one trial)')
             return
-        usagePercentiles = process.stdout.readline().decode('utf-8').strip()
         activeOptions = []
         if (advantage):
             activeOptions.append("Flame Advantage")
@@ -559,7 +557,7 @@ async def flamecalcFunc(message, splitcontent, numTrials = 1000):
             "name" : "Usage Percentiles",
             "value" : f"```75%     85%     95%\n{formattedUsagePercentiles}```"
         })
-        await message.channel.send(embed = discord.Embed.from_dict(embed))
+        await procmessage.edit(content = "", embed = discord.Embed.from_dict(embed))
         return
     # except:
     #     await message.channel.send('Invalid input')
