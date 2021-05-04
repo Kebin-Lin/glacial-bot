@@ -13,7 +13,8 @@ bot.remove_command("help")
 
 @bot.check
 async def testmode(ctx):
-    return not TEST_MODE or ctx.guild != None and ctx.guild.id == TEST_SERVER_ID
+    inTestServer = ctx.guild != None and ctx.guild.id == TEST_SERVER_ID
+    return inTestServer if TEST_MODE else not inTestServer
 
 @bot.command(name="help")
 async def helpFunc(ctx, cmd: str = None):
@@ -113,65 +114,6 @@ async def on_ready():
     if TEST_MODE:
         print('Test mode is on')
     await bot.change_presence(activity = discord.Game(name = 'Use "!gb help" for a list of commands'))
-
-@bot.event
-async def on_raw_reaction_add(payload):
-    if TEST_MODE and payload.guild_id != TEST_SERVER_ID:
-        return
-    if payload.user_id == bot.user.id:
-        return
-    message = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
-    if message.author == bot.user: #Event Invites
-        eventInfo = database.getEventFromInvite(message.id)
-        if len(eventInfo) != 0:
-            eventInfo = eventInfo[0]
-            eventName = eventInfo[2]
-            eventTime = eventInfo[3]
-            if database.acceptInvite(eventInfo[0], payload.user_id): #Valid user accepted invite
-                participants = [x[0] for x in database.getAcceptedInvites(eventInfo[0])]
-                pending = [x[0] for x in database.getPendingInvites(eventInfo[0])]
-                embed = {
-                    "color" : 7855479,
-                    "author" : {
-                        "name" : "Event Invite",
-                        "icon_url" : str(bot.user.avatar_url)
-                    },
-                    "fields" : [
-                        {
-                            "name" : "Event Name",
-                            "value" : eventName
-                        },
-                        {
-                            "name" : "Time",
-                            "value" : extrafuncs.utcToResetDelta(eventTime)
-                        },
-                        {
-                            "name" : "Participants",
-                            "value" : "None" if len(participants) == 0 else " ".join(bot.get_user(x).mention for x in participants)
-                        },
-                        {
-                            "name" : "Pending Invites",
-                            "value" : "None" if len(pending) == 0 else " ".join(bot.get_user(x).mention for x in pending)
-                        }
-                    ]
-                }
-                await message.edit(embed = discord.Embed.from_dict(embed))
-    else:
-        leadermanrole = discord.utils.find(lambda r: r.name == "Leader Man", message.guild.roles)
-        jrrole = discord.utils.find(lambda r: r.name == "Jrs", message.guild.roles)
-        if database.isPendingReport(payload.message_id) and (leadermanrole in payload.member.roles or jrrole in payload.member.roles):
-            emoji = str(payload.emoji)
-            if emoji == '✅':
-                database.removeReport(message.id)
-                try:
-                    score = int(message.content.split()[2])
-                    database.applyScore(message.author.id, score)
-                    await message.remove_reaction('❌', bot.user)
-                except:
-                    await message.add_reaction('🚫')
-            elif emoji == '❌':
-                database.removeReport(message.id)
-                await message.remove_reaction('✅', bot.user)
 
 extensions = ["cogs.CheckPing", "cogs.Scheduler", "cogs.Calculator", "cogs.FlagRace"]
 

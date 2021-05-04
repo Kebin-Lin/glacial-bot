@@ -255,5 +255,25 @@ class FlagRace(commands.Cog):
                         embed['color'] = 0xff6961
                         await sentMsg.edit(embed = discord.Embed.from_dict(embed))
 
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+        message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
+        if message.author != self.bot.user:
+            leadermanrole = discord.utils.find(lambda r: r.name == "Leader Man", message.guild.roles)
+            jrrole = discord.utils.find(lambda r: r.name == "Jrs", message.guild.roles)
+            if database.isPendingReport(payload.message_id) and (leadermanrole in payload.member.roles or jrrole in payload.member.roles):
+                emoji = str(payload.emoji)
+                if emoji == '✅':
+                    database.removeReport(message.id)
+                    try:
+                        score = int(message.content.split()[2])
+                        database.applyScore(message.author.id, score)
+                        await message.remove_reaction('❌', self.bot.user)
+                    except:
+                        await message.add_reaction('🚫')
+                elif emoji == '❌':
+                    database.removeReport(message.id)
+                    await message.remove_reaction('✅', self.bot.user)
+
 def setup(bot):
     bot.add_cog(FlagRace(bot))

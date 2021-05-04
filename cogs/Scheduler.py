@@ -196,6 +196,86 @@ class Scheduler(commands.Cog):
             await originalInvite.edit(embed = discord.Embed.from_dict(embed))
         else:
             await message.channel.send("No new participants invited.")
+    
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+        message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
+        emoji = str(payload.emoji)
+        if message.author == self.bot.user and emoji == '✅': #Event Invites
+            eventInfo = database.getEventFromInvite(message.id)
+            if len(eventInfo) != 0:
+                eventInfo = eventInfo[0]
+                eventName = eventInfo[2]
+                eventTime = eventInfo[3]
+                if database.acceptInvite(eventInfo[0], payload.user_id): #Valid user accepted invite
+                    participants = [x[0] for x in database.getAcceptedInvites(eventInfo[0])]
+                    pending = [x[0] for x in database.getPendingInvites(eventInfo[0])]
+                    embed = {
+                        "color" : 7855479,
+                        "author" : {
+                            "name" : "Event Invite",
+                            "icon_url" : str(self.bot.user.avatar_url)
+                        },
+                        "fields" : [
+                            {
+                                "name" : "Event Name",
+                                "value" : eventName
+                            },
+                            {
+                                "name" : "Time",
+                                "value" : extrafuncs.utcToResetDelta(eventTime)
+                            },
+                            {
+                                "name" : "Participants",
+                                "value" : "None" if len(participants) == 0 else " ".join(self.bot.get_user(x).mention for x in participants)
+                            },
+                            {
+                                "name" : "Pending Invites",
+                                "value" : "None" if len(pending) == 0 else " ".join(self.bot.get_user(x).mention for x in pending)
+                            }
+                        ]
+                    }
+                    await message.edit(embed = discord.Embed.from_dict(embed))
+        
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload):
+        message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
+        emoji = str(payload.emoji)
+        if message.author == self.bot.user and emoji == '✅': #Event Invites
+            eventInfo = database.getEventFromInvite(message.id)
+            if len(eventInfo) != 0:
+                eventInfo = eventInfo[0]
+                eventName = eventInfo[2]
+                eventTime = eventInfo[3]
+                if database.unacceptInvite(eventInfo[0], payload.user_id): #Valid user unaccepted invite
+                    participants = [x[0] for x in database.getAcceptedInvites(eventInfo[0])]
+                    pending = [x[0] for x in database.getPendingInvites(eventInfo[0])]
+                    embed = {
+                        "color" : 7855479,
+                        "author" : {
+                            "name" : "Event Invite",
+                            "icon_url" : str(self.bot.user.avatar_url)
+                        },
+                        "fields" : [
+                            {
+                                "name" : "Event Name",
+                                "value" : eventName
+                            },
+                            {
+                                "name" : "Time",
+                                "value" : extrafuncs.utcToResetDelta(eventTime)
+                            },
+                            {
+                                "name" : "Participants",
+                                "value" : "None" if len(participants) == 0 else " ".join(self.bot.get_user(x).mention for x in participants)
+                            },
+                            {
+                                "name" : "Pending Invites",
+                                "value" : "None" if len(pending) == 0 else " ".join(self.bot.get_user(x).mention for x in pending)
+                            }
+                        ]
+                    }
+                    await message.edit(embed = discord.Embed.from_dict(embed))
 
 def setup(bot):
     bot.add_cog(Scheduler(bot))

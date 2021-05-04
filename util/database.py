@@ -61,6 +61,15 @@ def acceptInvite(eventID, attendeeID):
     return True
 
 @reconnect
+def unacceptInvite(eventID, attendeeID):
+    cursor.execute("DELETE FROM acceptedEventInvites WHERE eventID = %s AND attendeeID = %s RETURNING 1", (eventID, attendeeID,))
+    if cursor.rowcount == 0:
+        return False
+    cursor.execute("INSERT INTO pendingEventInvites (eventID, attendeeID) VALUES (%s, %s)", (eventID, attendeeID,))
+    conn.commit()
+    return True
+
+@reconnect
 def deleteEvent(eventID):
     cursor.execute("DELETE FROM events WHERE eventID = %s RETURNING 1", (eventID,))
     conn.commit()
