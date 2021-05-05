@@ -1,4 +1,4 @@
-import os, math, asyncio, random, subprocess, datetime
+import os, math, asyncio, random, subprocess, datetime, traceback, sys
 import discord
 from discord.ext import tasks, commands
 from util import database, extrafuncs
@@ -15,6 +15,14 @@ bot.remove_command("help")
 async def testmode(ctx):
     inTestServer = ctx.guild != None and ctx.guild.id == TEST_SERVER_ID
     return inTestServer if TEST_MODE else not inTestServer
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.errors.CheckFailure):
+        pass
+    else:
+        print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
+        traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
 @bot.command(name="help")
 async def helpFunc(ctx, cmd: str = None):
