@@ -92,6 +92,11 @@ def getEventFromInvite(messageID):
     return cursor.fetchall()
 
 @reconnect
+def getUpcoming(userID):
+    cursor.execute("SELECT * FROM events WHERE EXISTS (SELECT 1 FROM acceptedEventInvites WHERE events.eventID = acceptedEventInvites.eventID AND attendeeID = %s LIMIT 1)", (userID,))
+    return cursor.fetchall()
+
+@reconnect
 def findEvents(eventDateTime):
     cursor.execute("SELECT * FROM events WHERE eventDateTime = %s", (eventDateTime,))
     return cursor.fetchall()

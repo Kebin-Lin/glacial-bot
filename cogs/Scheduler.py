@@ -149,6 +149,28 @@ class Scheduler(commands.Cog):
 
     @commands.command()
     @commands.guild_only()
+    async def upcoming(self, ctx):
+        upcomingEvents = database.getUpcoming(ctx.author.id)
+        embed = {
+            "color" : 7855479,
+            "author" : {
+                "name" : "Upcoming Events",
+                "icon_url" : str(self.bot.user.avatar_url)
+            },
+            "description" : "No upcoming events" if len(upcomingEvents) == 0 else "\n".join([])
+        }
+        if len(upcomingEvents) == 0:
+            embed["description"] = "No upcoming events"
+        else:
+            formattedEvents = []
+            for i in upcomingEvents:
+                timediff = (i[3] - datetime.datetime.now())
+                formattedEvents.append(f"{i[2]}: {extrafuncs.utcToResetDelta(i[3])} (in {timediff.days * 24 + timediff.seconds//3600} hours)")
+            embed["description"] = "\n".join(formattedEvents)
+        await ctx.send(embed = discord.Embed.from_dict(embed))
+
+    @commands.command()
+    @commands.guild_only()
     async def invite(self, ctx, eventName: str):
         message = ctx.message
         participants = [x.id for x in message.mentions]

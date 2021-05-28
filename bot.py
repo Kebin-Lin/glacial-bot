@@ -104,6 +104,10 @@ COMMAND_SET = {
         'helpmsg' : 'Schedules an event',
         'usage' : '!gb schedule <event name> <event time (Monday,+2 for Monday, Reset + 2 hours)> <participant1> <participant2> ...'
     },
+    'upcoming' : {
+        'helpmsg' : 'Lists upcoming events that have been accepted',
+        'usage' : '!gb upcoming'
+    },
     'cancel' : {
         'helpmsg' : 'Cancels an event',
         'usage' : '!gb cancel <event name>'
