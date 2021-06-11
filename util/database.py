@@ -102,6 +102,17 @@ def findEvents(eventDateTime):
     return cursor.fetchall()
 
 @reconnect
+def findConflicts(userIDs, eventDateTime):
+    subcommand = '''(
+    SELECT attendeeID FROM acceptedEventInvites
+    WHERE attendeeID = %s AND
+    EXISTS (SELECT 1 FROM events WHERE events.eventID = acceptedEventInvites.eventID AND events.eventDateTime = %s LIMIT 1)
+    LIMIT 1
+    )'''
+    cursor.execute(b"UNION".join(cursor.mogrify(subcommand, (x, eventDateTime,)) for x in userIDs))
+    return cursor.fetchall()
+
+@reconnect
 def getAcceptedInvites(eventID):
     cursor.execute("SELECT attendeeID FROM acceptedEventInvites WHERE eventID = %s", (eventID,))
     return cursor.fetchall()

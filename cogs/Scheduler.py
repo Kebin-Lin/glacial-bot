@@ -130,6 +130,17 @@ class Scheduler(commands.Cog):
         sentMsg = await ctx.send(embed = discord.Embed.from_dict(embed))
         database.createEvent(organizer, eventName, eventTime, participants, sentMsg.channel.id, sentMsg.id)
         await sentMsg.add_reaction('✅')
+        conflicts = database.findConflicts(participants, eventTime)
+        if len(conflicts) != 0:
+            conflictsEmbed = {
+                "color" : 0xff6961,
+                "author" : {
+                    "name" : "Timing Conflicts Found",
+                    "icon_url" : str(self.bot.user.avatar_url)
+                },
+                "description" : " ".join(self.bot.get_user(x[0]).mention for x in conflicts)
+            }
+            await ctx.send(embed = discord.Embed.from_dict(conflictsEmbed))
 
     @schedule.error
     async def scheduleError(self, ctx, error):
