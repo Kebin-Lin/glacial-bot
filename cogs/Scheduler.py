@@ -176,7 +176,7 @@ class Scheduler(commands.Cog):
             formattedEvents = []
             for i in upcomingEvents:
                 timediff = (i[3] - datetime.datetime.now())
-                formattedEvents.append(f"{i[2]}: {extrafuncs.utcToResetDelta(i[3])} (in {timediff.days * 24 + timediff.seconds//3600} hours)")
+                formattedEvents.append(f"[{i[2]}](https://discord.com/channels/{ctx.guild.id}/{i[4]}/{i[5]}): {extrafuncs.utcToResetDelta(i[3])} (in {timediff.days * 24 + timediff.seconds//3600} hours)")
             embed["description"] = "\n".join(formattedEvents)
         await ctx.send(embed = discord.Embed.from_dict(embed))
 
