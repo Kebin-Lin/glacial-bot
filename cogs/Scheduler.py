@@ -61,7 +61,7 @@ class Scheduler(commands.Cog):
     @commands.command()
     @commands.guild_only()
     async def reminderconfig(self, ctx, times: commands.Greedy[float]):
-        times = [i for i in times if i % .25 == 0 and i > 0 and i <= 24]
+        times = [i for i in times if i % .25 == 0 and i >= 0 and i <= 24]
         if len(times) == 0:
             times = [.25, 24]
         responsestr = f"Reminder(s) set for {', '.join(str(x) for x in times[:-1])}{',' if len(times) > 2 else ''}{' and ' if len(times) > 1 else ''}{times[-1]} hour(s) before events."
