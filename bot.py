@@ -104,6 +104,10 @@ COMMAND_SET = {
         'helpmsg' : 'Schedules an event',
         'usage' : '!gb schedule <event name> <event time (Monday,+2 for Monday, Reset + 2 hours)> <participant1> <participant2> ...'
     },
+    'reminderconfig' : {
+        'helpmsg' : 'Configures what times reminders are triggered for a user. Can only be set in 15 minute intervals and up to a maximum of 24 hours away.',
+        'usage' : '!gb reminderconfig <time1> <time2> <time3> ...\nExample: !gb reminderconfig .25 24'
+    },
     'upcoming' : {
         'helpmsg' : 'Lists upcoming events that have been accepted',
         'usage' : '!gb upcoming'

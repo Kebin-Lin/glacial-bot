@@ -12,51 +12,62 @@ class Scheduler(commands.Cog):
     async def checkForEvents(self):
         currentTime = datetime.datetime.now(datetime.timezone.utc)
         currentTime = currentTime.replace(second = 0, microsecond = 0)
-        eventCheckTime = currentTime + datetime.timedelta(minutes = 15)
-        dayReminderTime = currentTime + datetime.timedelta(days = 1)
-        reminderList = database.findEvents(eventCheckTime)
-        dayReminderList = database.findEvents(dayReminderTime)
-        embed = {
-            "color" : 7855479,
-            "author" : {
-                "name" : "15 Minute Event Reminder",
-                "icon_url" : str(self.bot.user.avatar_url)
-            },
-            "fields" : [
-                {
-                    "name" : "Event Name",
-                    "value" : "Event"
-                },
-                {
-                    "name" : "Time",
-                    "value" : "Placeholder"
-                },
-                {
-                    "name" : "Participants",
-                    "value" : "None"
+        events = database.findEventsInMultiple(currentTime)
+        for event in events:
+            timediff = event[6]
+            reminders = database.getReminders(event[0], timediff)
+            if len(reminders) != 0:
+                titlestring = []
+                if timediff.days == 1:
+                    titlestring.append("1 Day")
+                else:
+                    if timediff.seconds >= 3600:
+                        titlestring.append(f"{timediff.seconds//3600} Hour")
+                    if timediff.seconds % 3600 != 0:
+                        titlestring.append(f"{timediff.seconds%3600//60} Minute")
+                embed = {
+                    "color" : 7855479,
+                    "author" : {
+                        "name" : ", ".join(titlestring) + " Event Reminder" if len(titlestring) != 0 else "Event Reminder",
+                        "icon_url" : str(self.bot.user.avatar_url)
+                    },
+                    "fields" : [
+                        {
+                            "name" : "Event Name",
+                            "value" : "Event"
+                        },
+                        {
+                            "name" : "Time",
+                            "value" : "Placeholder"
+                        },
+                        {
+                            "name" : "Participants",
+                            "value" : "None"
+                        }
+                    ]
                 }
-            ]
-        }
-        for event in reminderList:
-            message = await self.bot.get_channel(event[4]).fetch_message(event[5])
-            participants = " ".join(self.bot.get_user(x[0]).mention for x in database.getAcceptedInvites(event[0]))
-            embed["fields"][0]["value"] = event[2]
-            embed["fields"][1]["value"] = extrafuncs.utcToResetDelta(event[3])
-            embed["fields"][2]["value"] = "None" if len(participants) == 0 else participants
-            await message.channel.send(None if len(participants) == 0 else participants, embed = discord.Embed.from_dict(embed))
-            database.deleteEvent(event[0])
-        embed["author"]["name"] = "1 Day Event Reminder"
-        for event in dayReminderList:
-            message = await self.bot.get_channel(event[4]).fetch_message(event[5])
-            participants = " ".join(self.bot.get_user(x[0]).mention for x in database.getAcceptedInvites(event[0]))
-            embed["fields"][0]["value"] = event[2]
-            embed["fields"][1]["value"] = extrafuncs.utcToResetDelta(event[3])
-            embed["fields"][2]["value"] = "None" if len(participants) == 0 else participants
-            await message.channel.send(None if len(participants) == 0 else participants, embed = discord.Embed.from_dict(embed))
+                embed["fields"][0]["value"] = event[2]
+                embed["fields"][1]["value"] = extrafuncs.utcToResetDelta(event[3])
+                embed["fields"][2]["value"] = " ".join(self.bot.get_user(x[0]).mention for x in database.getAcceptedInvites(event[0]))
+                message = await self.bot.get_channel(event[4]).fetch_message(event[5])
+                await message.channel.send(" ".join(self.bot.get_user(x[0]).mention for x in reminders), embed = discord.Embed.from_dict(embed))
+            if timediff == datetime.timedelta():
+                database.deleteEvent(event[0])
 
     @checkForEvents.before_loop
     async def beforeStartLoopEvents(self):
         await self.bot.wait_until_ready()
+
+    @commands.command()
+    @commands.guild_only()
+    async def reminderconfig(self, ctx, times: commands.Greedy[float]):
+        times = [i for i in times if i % .25 == 0 and i > 0 and i <= 24]
+        if len(times) == 0:
+            times = [.25, 24]
+        responsestr = f"Reminder(s) set for {', '.join(str(x) for x in times[:-1])}{',' if len(times) > 2 else ''}{' and ' if len(times) > 1 else ''}{times[-1]} hour(s) before events."
+        times = [datetime.timedelta(hours=i) for i in times]
+        if database.updateReminderSettings(ctx.author.id, times):
+            await ctx.send(responsestr)
 
     @commands.command()
     @commands.guild_only()

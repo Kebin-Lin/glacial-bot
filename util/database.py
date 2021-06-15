@@ -102,6 +102,40 @@ def findEvents(eventDateTime):
     return cursor.fetchall()
 
 @reconnect
+def findEventsInMultiple(eventDateTime):
+    cursor.execute('''
+        SELECT *, (eventDateTime - %s) FROM events WHERE
+        (eventDateTime - %s) <= INTERVAL '1 day' AND
+        EXTRACT(MINUTE FROM (eventDateTime - %s) / .25) = 0
+    ''', (eventDateTime, eventDateTime, eventDateTime,))
+    return cursor.fetchall()
+
+@reconnect
+def getReminders(eventID, timeDiff):
+    cursor.execute('''
+        SELECT attendeeID FROM acceptedEventInvites WHERE
+        eventID = %s AND
+        CASE WHEN EXISTS (SELECT 1 FROM reminderSettings WHERE userID = attendeeID LIMIT 1) THEN (
+            EXISTS (
+                SELECT 1 FROM reminderSettings WHERE
+                userID = attendeeID AND
+                timeBefore = %s
+                LIMIT 1
+            )
+        ) ELSE (EXISTS(SELECT 1 WHERE %s = INTERVAL '1 day' OR %s = INTERVAL '15 minutes' LIMIT 1))
+        END
+    ''', (eventID, timeDiff, timeDiff, timeDiff,))
+    return cursor.fetchall()
+
+@reconnect
+def updateReminderSettings(userID, times):
+    cursor.execute("DELETE FROM reminderSettings WHERE userID = %s", (userID,))
+    args = b",".join(cursor.mogrify("(%s, %s)", (userID, x)) for x in times)
+    cursor.execute(b"INSERT INTO reminderSettings (userID, timeBefore) VALUES " + args)
+    conn.commit()
+    return True
+
+@reconnect
 def findConflicts(userIDs, eventDateTime):
     subcommand = '''(
     SELECT attendeeID FROM acceptedEventInvites

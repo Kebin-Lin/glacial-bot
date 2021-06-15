@@ -51,6 +51,15 @@ def setup():
         )
         '''
     )
+    cursor.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS reminderSettings(
+            userID NUMERIC NOT NULL,
+            timeBefore INTERVAL NOT NULL,
+            PRIMARY KEY (userID, timeBefore)
+        )
+        '''
+    )
 
 setup()
 # cursor.execute("ALTER TABLE pendingEventInvites DROP CONSTRAINT constraint_fk")
