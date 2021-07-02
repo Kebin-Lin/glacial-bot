@@ -51,8 +51,11 @@ class Scheduler(commands.Cog):
                 embed["fields"][2]["value"] = " ".join(self.bot.get_user(x[0]).mention for x in database.getAcceptedInvites(event[0]))
                 message = await self.bot.get_channel(event[4]).fetch_message(event[5])
                 await message.channel.send(" ".join(self.bot.get_user(x[0]).mention for x in reminders), embed = discord.Embed.from_dict(embed))
+            deleted = False
             if timediff == datetime.timedelta():
                 database.deleteEvent(event[0])
+                deleted = True
+            print(f'{event[2]}: {timediff}, Deleted: {deleted}')
 
     @checkForEvents.before_loop
     async def beforeStartLoopEvents(self):
