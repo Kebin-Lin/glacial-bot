@@ -130,8 +130,9 @@ def getReminders(eventID, timeDiff):
 @reconnect
 def updateReminderSettings(userID, times):
     cursor.execute("DELETE FROM reminderSettings WHERE userID = %s", (userID,))
-    args = b",".join(cursor.mogrify("(%s, %s)", (userID, x)) for x in times)
-    cursor.execute(b"INSERT INTO reminderSettings (userID, timeBefore) VALUES " + args)
+    if len(times) != 0:
+        args = b",".join(cursor.mogrify("(%s, %s)", (userID, x)) for x in times)
+        cursor.execute(b"INSERT INTO reminderSettings (userID, timeBefore) VALUES " + args)
     conn.commit()
     return True
 

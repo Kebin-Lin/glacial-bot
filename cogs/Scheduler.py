@@ -50,12 +50,9 @@ class Scheduler(commands.Cog):
                 embed["fields"][1]["value"] = extrafuncs.utcToResetDelta(event[3])
                 embed["fields"][2]["value"] = " ".join(self.bot.get_user(x[0]).mention for x in database.getAcceptedInvites(event[0]))
                 message = await self.bot.get_channel(event[4]).fetch_message(event[5])
-                await message.channel.send(" ".join(self.bot.get_user(x[0]).mention for x in reminders), embed = discord.Embed.from_dict(embed))
-            deleted = False
+                await message.reply(" ".join(self.bot.get_user(x[0]).mention for x in reminders), embed = discord.Embed.from_dict(embed))
             if timediff <= datetime.timedelta():
                 database.deleteEvent(event[0])
-                deleted = True
-            print(f'{event[2]}: {timediff}, Deleted: {deleted}')
 
     @checkForEvents.before_loop
     async def beforeStartLoopEvents(self):
@@ -65,9 +62,11 @@ class Scheduler(commands.Cog):
     @commands.guild_only()
     async def reminderconfig(self, ctx, times: commands.Greedy[float]):
         times = [i for i in times if i % .25 == 0 and i >= 0 and i <= 24]
+        responsestr = None
         if len(times) == 0:
-            times = [.25, 24]
-        responsestr = f"Reminder(s) set for {', '.join(str(x) for x in times[:-1])}{',' if len(times) > 2 else ''}{' and ' if len(times) > 1 else ''}{times[-1]} hour(s) before events."
+            responsestr = f'No reminders will be sent for you.'
+        else:
+            responsestr = f"Reminder(s) set for {', '.join(str(x) for x in times[:-1])}{',' if len(times) > 2 else ''}{' and ' if len(times) > 1 else ''}{times[-1]} hour(s) before events."
         times = [datetime.timedelta(hours=i) for i in times]
         if database.updateReminderSettings(ctx.author.id, times):
             await ctx.send(responsestr)
