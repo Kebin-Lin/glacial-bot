@@ -11,7 +11,7 @@ def reconnect(func):
         while True:
             try:
                 return func(*args, **kwargs)
-            except (psycopg2.errors.AdminShutdown, psycopg2.InterfaceError):
+            except (psycopg2.errors.AdminShutdown, psycopg2.InterfaceError, psycopg2.OperationalError):
                 print("Reconnecting to Database")
                 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
                 cursor = conn.cursor()
