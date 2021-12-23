@@ -20,7 +20,7 @@ class Calculator(commands.Cog):
                 await message.channel.send('Invalid goal')
                 return
             equiplv = int(splitcontent[4])
-            if (equiplv < 1 or equiplv > 200):
+            if (equiplv < 1 or equiplv > 250):
                 await message.channel.send('Invalid item level')
                 return
             optionalArgs = splitcontent[5:]
