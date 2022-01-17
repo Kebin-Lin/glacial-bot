@@ -1,5 +1,6 @@
 import asyncio
 import discord
+import random
 from discord.ext import commands
 from util import database
 
@@ -10,8 +11,8 @@ class FlagRace(commands.Cog):
     @commands.command()
     async def report(self, ctx, score: int):
         database.createReport(ctx.message.id, ctx.channel.id)
-        await message.add_reaction('✅')
-        await message.add_reaction('❌')
+        await ctx.message.add_reaction('✅')
+        await ctx.message.add_reaction('❌')
     
     @report.error
     async def reportError(self, ctx, error):
@@ -24,6 +25,7 @@ class FlagRace(commands.Cog):
 
     @commands.command(aliases=['lb'])
     async def leaderboard(self, ctx):
+        message = ctx.message
         embed = {
             "color" : 7855479,
             "author" : {
@@ -43,19 +45,19 @@ class FlagRace(commands.Cog):
             await ctx.send(embed = discord.Embed.from_dict(embed))
             return
 
-        def setupLeaderboard(embed, scores):
+        async def setupLeaderboard(embed, scores):
             placing = offset + 1
             embed['fields'] = []
             formattedPlacings = []
             for i in scores[offset : offset + 10]:
-                formattedPlacings.append(f"{placing}. **{str(self.bot.get_user(i[0]))}** - {i[1]} points over {i[2]} race(s)")
+                formattedPlacings.append(f"{placing}. **{str(await self.bot.fetch_user(i[0]))}** - {i[1]} points over {i[2]} race(s)")
                 placing += 1
             embed['fields'].append({
                 'name' : '\u200b',
                 'value' : '\n'.join(formattedPlacings)
             })
         
-        setupLeaderboard(embed, scores)
+        await setupLeaderboard(embed, scores)
         sentMsg = await ctx.send(embed = discord.Embed.from_dict(embed))
 
         def check(reaction, user):
@@ -119,7 +121,9 @@ class FlagRace(commands.Cog):
             await ctx.send('You do not have the role for this command')
 
     @commands.command()
-    async def setscore(message, splitcontent):
+    async def setscore(self, ctx):
+        message = ctx.message
+        splitcontent = message.content.split()
         leadermanrole = discord.utils.find(lambda r: r.name == "Leader Man", message.guild.roles)
         jrrole = discord.utils.find(lambda r: r.name == "Jrs", message.guild.roles)
         if not (leadermanrole in message.author.roles or jrrole in message.author.roles or message.author.id == 149328493740556288):
@@ -153,6 +157,7 @@ class FlagRace(commands.Cog):
 
     @commands.command()
     async def raffle(self, ctx):
+        message = ctx.message
         role = discord.utils.find(lambda r: r.name == "Leader Man", message.guild.roles)
         if role not in message.author.roles:
             await message.channel.send('You do not have the role for this command')
