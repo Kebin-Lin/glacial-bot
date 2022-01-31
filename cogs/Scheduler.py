@@ -175,6 +175,7 @@ class Scheduler(commands.Cog):
     @commands.guild_only()
     async def upcoming(self, ctx):
         upcomingEvents = database.getUpcoming(ctx.author.id)
+        upcomingEvents.sort(key = lambda x: x[3])
         embed = {
             "color" : 7855479,
             "author" : {
