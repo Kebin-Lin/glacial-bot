@@ -97,7 +97,7 @@ class Scheduler(commands.Cog):
         try:
             for index, val in enumerate(eventTime[1]):
                 if val.isalpha():
-                    splitTime = (int(x) for x in eventTime[1][:index].split(":"))
+                    splitTime = [int(x) for x in eventTime[1][:index].split(":")]
                     hour = splitTime[0]
                     minute = 0
                     if len(splitTime) >= 2: # Seconds and further will be ignored
