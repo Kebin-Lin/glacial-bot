@@ -81,10 +81,10 @@ class Scheduler(commands.Cog):
             'friday' : 4, 'fri' : 4, 'saturday' : 5, 'sat' : 5, 'sunday' : 6, 'sun' : 6
         }
         timezones = { # Although it is more correct to leave the standard times alone, many people don't know the difference between EST and EST
-            'EST' : 'US/Eastern', 'EDT' : 'US/Eastern',
-            'CST' : 'US/Central', 'CDT' : 'US/Central',
-            'MST' : 'US/Mountain', 'MDT' : 'US/Mountain',
-            'PST' : 'US/Pacific', 'PDT' : 'US/Pacific'
+            'EST' : 'US/Eastern', 'EDT' : 'US/Eastern', 'ET' : 'US/Eastern',
+            'CST' : 'US/Central', 'CDT' : 'US/Central', 'CT' : 'US/Central',
+            'MST' : 'US/Mountain', 'MDT' : 'US/Mountain', 'MT' : 'US/Mountain',
+            'PST' : 'US/Pacific', 'PDT' : 'US/Pacific', 'PT' : 'US/Pacific'
         }
         message = ctx.message
         organizer = ctx.author.id
