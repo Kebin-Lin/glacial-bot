@@ -94,24 +94,32 @@ class Scheduler(commands.Cog):
             return
         eventTime = eventTime.split(",")
         eventTime[0] = weekdays[eventTime[0].lower()]
-        for index, val in enumerate(eventTime[1]):
-            if val.isalpha():
-                hour, minute = (int(x) for x in eventTime[1][:index].split(":"))
-                tzarg = pytz.timezone(timezones[eventTime[1][index:].upper()])
-                today = pendulum.today(tzarg)
+        try:
+            for index, val in enumerate(eventTime[1]):
+                if val.isalpha():
+                    splitTime = (int(x) for x in eventTime[1][:index].split(":"))
+                    hour = splitTime[0]
+                    minute = 0
+                    if len(splitTime >= 2): # Seconds and further will be ignored
+                        minute = splitTime[1]
+                    tzarg = pytz.timezone(timezones[eventTime[1][index:].upper()])
+                    today = pendulum.today(tzarg)
+                    daysUntil = (eventTime[0] - today.weekday() + 7) % 7
+                    newDate = today.add(days = daysUntil, hours = hour, minutes = minute)
+                    eventTime = datetime.datetime.fromtimestamp(newDate.timestamp(), newDate.timezone)
+                    break
+            else: # UTC + 1 day
+                today = datetime.datetime.now(datetime.timezone.utc).replace(hour = 0, minute = 0, second = 0, microsecond = 0)
+                eventTime[0] += 1
+                eventTime[1] = float(eventTime[1])
+                if eventTime[1] < 0:
+                    eventTime[0] = (eventTime[0] - 1) % 7
+                eventTime[1] %= 24
                 daysUntil = (eventTime[0] - today.weekday() + 7) % 7
-                newDate = today.add(days = daysUntil, hours = hour, minutes = minute)
-                eventTime = datetime.datetime.fromtimestamp(newDate.timestamp(), newDate.timezone)
-                break
-        else: # UTC + 1 day
-            today = datetime.datetime.now(datetime.timezone.utc).replace(hour = 0, minute = 0, second = 0, microsecond = 0)
-            eventTime[0] += 1
-            eventTime[1] = float(eventTime[1])
-            if eventTime[1] < 0:
-                eventTime[0] = (eventTime[0] - 1) % 7
-            eventTime[1] %= 24
-            daysUntil = (eventTime[0] - today.weekday() + 7) % 7
-            eventTime = today + datetime.timedelta(days = daysUntil, hours = eventTime[1])
+                eventTime = today + datetime.timedelta(days = daysUntil, hours = eventTime[1])
+        except:
+            await ctx.send("Invalid time provided.")
+            return
         if eventTime <= datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes = 15):
             if eventTime <= datetime.datetime.now(datetime.timezone.utc) and daysUntil <= 1:
                 eventTime = eventTime + datetime.timedelta(days = 7)
