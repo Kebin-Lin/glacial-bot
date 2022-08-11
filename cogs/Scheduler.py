@@ -100,7 +100,7 @@ class Scheduler(commands.Cog):
                     splitTime = (int(x) for x in eventTime[1][:index].split(":"))
                     hour = splitTime[0]
                     minute = 0
-                    if len(splitTime >= 2): # Seconds and further will be ignored
+                    if len(splitTime) >= 2: # Seconds and further will be ignored
                         minute = splitTime[1]
                     tzarg = pytz.timezone(timezones[eventTime[1][index:].upper()])
                     today = pendulum.today(tzarg)
