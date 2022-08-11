@@ -122,7 +122,7 @@ def getReminders(eventID, timeDiff):
                 timeBefore = %s
                 LIMIT 1
             )
-        ) ELSE (EXISTS(SELECT 1 WHERE %s = INTERVAL '1 day' OR %s = INTERVAL '15 minutes' LIMIT 1))
+        ) ELSE (EXISTS(SELECT 1 WHERE %s = INTERVAL '1 day' OR %s = INTERVAL '1 hour' LIMIT 1))
         END
     ''', (eventID, timeDiff, timeDiff, timeDiff,))
     return cursor.fetchall()
