@@ -1,4 +1,6 @@
 import datetime
+import pytz
+import pendulum
 import discord
 from discord.ext import tasks, commands
 from util import database, extrafuncs
@@ -47,7 +49,7 @@ class Scheduler(commands.Cog):
                     ]
                 }
                 embed["fields"][0]["value"] = event[2]
-                embed["fields"][1]["value"] = extrafuncs.utcToResetDelta(event[3])
+                embed["fields"][1]["value"] = f"<t:{int(event[3].timestamp())}>"
                 embed["fields"][2]["value"] = " ".join([(await self.bot.fetch_user(x[0])).mention for x in database.getAcceptedInvites(event[0])])
                 message = await self.bot.get_channel(event[4]).fetch_message(event[5])
                 await message.reply(" ".join(self.bot.get_user(x[0]).mention for x in reminders), embed = discord.Embed.from_dict(embed))
@@ -78,27 +80,38 @@ class Scheduler(commands.Cog):
             'monday' : 0, 'mon' : 0, 'tuesday' : 1, 'tues' : 1, 'tue' : 1, 'wednesday' : 2, 'wed' : 2, 'thursday' : 3, 'thurs' : 3, 'thu' : 3,
             'friday' : 4, 'fri' : 4, 'saturday' : 5, 'sat' : 5, 'sunday' : 6, 'sun' : 6
         }
+        timezones = { # Although it is more correct to leave the standard times alone, many people don't know the difference between EST and EST
+            'EST' : 'US/Eastern', 'EDT' : 'US/Eastern',
+            'CST' : 'US/Central', 'CDT' : 'US/Central',
+            'MST' : 'US/Mountain', 'MDT' : 'US/Mountain',
+            'PST' : 'US/Pacific', 'PDT' : 'US/Pacific'
+        }
         message = ctx.message
         organizer = ctx.author.id
+        today = datetime.datetime.now(datetime.timezone.utc).replace(hour = 0, minute = 0, second = 0, microsecond = 0)
         if eventName == "":
             await ctx.send("No event name provided")
             return
         eventTime = eventTime.split(",")
-        eventTime[0] = eventTime[0].lower()
-        if eventTime[0] not in weekdays:
-            await ctx.send("Invalid day provided.")
-            return
-        try:
+        eventTime[0] = weekdays[eventTime[0].lower()]
+        for index, val in enumerate(eventTime[1]):
+            if val.isalpha():
+                hour, minute = (int(x) for x in eventTime[1][:index].split(":"))
+                tzarg = pytz.timezone(timezones[eventTime[1][index:].upper()])
+                today = pendulum.today(tzarg)
+                daysUntil = (eventTime[0] - today.weekday() + 7) % 7
+                newDate = today.add(days = daysUntil, hours = hour, minutes = minute)
+                eventTime = datetime.datetime.fromtimestamp(newDate.timestamp(), newDate.timezone)
+                break
+        else: # UTC + 1 day
+            today = datetime.datetime.now(datetime.timezone.utc).replace(hour = 0, minute = 0, second = 0, microsecond = 0)
+            eventTime[0] += 1
             eventTime[1] = float(eventTime[1])
-        except:
-            await ctx.send("Invalid time provided.")
-            return
-        eventTime[0] = weekdays[eventTime[0]]
-        today = datetime.datetime.now(datetime.timezone.utc)
-        today = today.replace(hour = 0, minute = 0, second = 0, microsecond = 0)
-        daysUntil = (((eventTime[0] + 1) % 7) - today.weekday()) % 7
-        eventTime = today + datetime.timedelta(days = daysUntil, hours = eventTime[1])
-        eventTime = eventTime.replace(second = 0, microsecond = 0)
+            if eventTime[1] < 0:
+                eventTime[0] = (eventTime[0] - 1) % 7
+            eventTime[1] %= 24
+            daysUntil = (eventTime[0] - today.weekday() + 7) % 7
+            eventTime = today + datetime.timedelta(days = daysUntil, hours = eventTime[1])
         if eventTime <= datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes = 15):
             if eventTime <= datetime.datetime.now(datetime.timezone.utc) and daysUntil <= 1:
                 eventTime = eventTime + datetime.timedelta(days = 7)
@@ -128,7 +141,7 @@ class Scheduler(commands.Cog):
                 },
                 {
                     "name" : "Time",
-                    "value" : extrafuncs.utcToResetDelta(eventTime)
+                    "value" : f"<t:{int(eventTime.timestamp())}>"
                 },
                 {
                     "name" : "Participants",
@@ -190,7 +203,7 @@ class Scheduler(commands.Cog):
             formattedEvents = []
             for i in upcomingEvents:
                 timediff = (i[3] - datetime.datetime.now())
-                formattedEvents.append(f"[{i[2]}](https://discord.com/channels/{ctx.guild.id}/{i[4]}/{i[5]}): {extrafuncs.utcToResetDelta(i[3])} (in {timediff.days * 24 + timediff.seconds//3600} hours)")
+                formattedEvents.append(f"[{i[2]}](https://discord.com/channels/{ctx.guild.id}/{i[4]}/{i[5]}): <t:{int(i[3].timestamp())}> (in {timediff.days * 24 + timediff.seconds//3600} hours)")
             embed["description"] = "\n".join(formattedEvents)
         await ctx.send(embed = discord.Embed.from_dict(embed))
 
@@ -228,7 +241,7 @@ class Scheduler(commands.Cog):
                     },
                     {
                         "name" : "Time",
-                        "value" : extrafuncs.utcToResetDelta(eventInfo[3])
+                        "value" : f"<t:{int(eventInfo[3].timestamp())}>"
                     },
                     {
                         "name" : "Participants",
@@ -270,7 +283,7 @@ class Scheduler(commands.Cog):
                             },
                             {
                                 "name" : "Time",
-                                "value" : extrafuncs.utcToResetDelta(eventTime)
+                                "value" : f"<t:{int(eventTime.timestamp())}>"
                             },
                             {
                                 "name" : "Participants",
@@ -310,7 +323,7 @@ class Scheduler(commands.Cog):
                             },
                             {
                                 "name" : "Time",
-                                "value" : extrafuncs.utcToResetDelta(eventTime)
+                                "value" : f"<t:{int(eventTime.timestamp())}>"
                             },
                             {
                                 "name" : "Participants",
