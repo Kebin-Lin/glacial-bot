@@ -40,5 +40,5 @@ class CheckPing(commands.Cog):
     async def beforeStartLoopPing(self):
         await self.bot.wait_until_ready()
 
-def setup(bot):
-    bot.add_cog(CheckPing(bot))
+async def setup(bot):
+    await bot.add_cog(CheckPing(bot))

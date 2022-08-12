@@ -30,7 +30,7 @@ class FlagRace(commands.Cog):
             "color" : 7855479,
             "author" : {
                 "name" : "Leaderboards",
-                "icon_url" : str(self.bot.user.avatar_url)
+                "icon_url" : str(self.bot.user.avatar)
             },
             "fields" : []
         }
@@ -167,7 +167,7 @@ class FlagRace(commands.Cog):
             "color" : 7855479,
             "author" : {
                 "name" : "Raffle",
-                "icon_url" : str(self.bot.user.avatar_url)
+                "icon_url" : str(self.bot.user.avatar)
             },
             "fields" : [
                 {
@@ -280,5 +280,5 @@ class FlagRace(commands.Cog):
                     database.removeReport(message.id)
                     await message.remove_reaction('✅', self.bot.user)
 
-def setup(bot):
-    bot.add_cog(FlagRace(bot))
+async def setup(bot):
+    await bot.add_cog(FlagRace(bot))

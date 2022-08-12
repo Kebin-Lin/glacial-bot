@@ -50,7 +50,7 @@ class Calculator(commands.Cog):
                 "color" : 7855479,
                 "author" : {
                     "name" : "Star Force Calculator",
-                    "icon_url" : str(self.bot.user.avatar_url)
+                    "icon_url" : str(self.bot.user.avatar)
                 },
                 "fields" : [
                     {
@@ -158,7 +158,7 @@ class Calculator(commands.Cog):
                 "color" : 7855479,
                 "author" : {
                     "name" : "Flame Calculator",
-                    "icon_url" : str(self.bot.user.avatar_url)
+                    "icon_url" : str(self.bot.user.avatar)
                 },
                 "fields" : [
                     {
@@ -214,5 +214,5 @@ class Calculator(commands.Cog):
         #     await message.channel.send('Invalid input')
         #     return
 
-def setup(bot):
-    bot.add_cog(Calculator(bot))
+async def setup(bot):
+    await bot.add_cog(Calculator(bot))

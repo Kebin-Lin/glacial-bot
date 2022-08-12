@@ -1,17 +1,104 @@
 import datetime
+from time import time
+import typing
+import re
 import pytz
 import pendulum
 import discord
+from discord import app_commands
 from discord.ext import tasks, commands
 from util import database, extrafuncs
 
+class InviteView(discord.ui.View):
+
+    def __init__(self):
+        super().__init__(timeout = None)
+
+    @discord.ui.button(label="Accept/Unaccept Invite", style=discord.ButtonStyle.blurple, custom_id='invite_view:inviteinteractionbutton')
+    async def inviteInteractionButton(self, interaction: discord.Interaction, button: discord.ui.Button):
+        eventInfo = database.getEventFromInvite(interaction.message.id)
+        if len(eventInfo) != 0:
+            eventInfo = eventInfo[0]
+            eventname = eventInfo[2]
+            eventtime = eventInfo[3]
+        updated = False
+        if database.acceptInvite(eventInfo[0], interaction.user.id):
+            updated = True
+        elif database.unacceptInvite(eventInfo[0], interaction.user.id):
+            updated = True
+        if updated:
+            participants = [x[0] for x in database.getAcceptedInvites(eventInfo[0])]
+            pending = [x[0] for x in database.getPendingInvites(eventInfo[0])]
+            embed = interaction.message.embeds[0].to_dict()
+            embed["fields"][2]["value"] = "None" if len(participants) == 0 else " ".join(interaction.guild.get_member(x).mention for x in participants)
+            embed["fields"][3]["value"] = "None" if len(pending) == 0 else " ".join(interaction.guild.get_member(x).mention for x in pending)
+            await interaction.response.edit_message(embed = discord.Embed.from_dict(embed))
+        else:
+            await interaction.response.send_message("You were not invited to this event.", ephemeral = True)
+
+class EventTimeTransformer(app_commands.Transformer):
+    async def transform(self, interaction: discord.Interaction, eventtime: str) -> datetime.datetime:
+        weekdays = {
+            'monday' : 0, 'mon' : 0, 'tuesday' : 1, 'tues' : 1, 'tue' : 1, 'wednesday' : 2, 'wed' : 2, 'thursday' : 3, 'thurs' : 3, 'thu' : 3,
+            'friday' : 4, 'fri' : 4, 'saturday' : 5, 'sat' : 5, 'sunday' : 6, 'sun' : 6
+        }
+        timezones = { # Although it is more correct to leave the standard times alone, many people don't know the difference between EST and EST
+            'EST' : 'US/Eastern', 'EDT' : 'US/Eastern', 'ET' : 'US/Eastern',
+            'CST' : 'US/Central', 'CDT' : 'US/Central', 'CT' : 'US/Central',
+            'MST' : 'US/Mountain', 'MDT' : 'US/Mountain', 'MT' : 'US/Mountain',
+            'PST' : 'US/Pacific', 'PDT' : 'US/Pacific', 'PT' : 'US/Pacific'
+        }
+        today = datetime.datetime.now(datetime.timezone.utc).replace(hour = 0, minute = 0, second = 0, microsecond = 0)
+        eventtime = eventtime.split(",")
+        try:
+            eventtime[0] = weekdays[eventtime[0].lower()]
+            for index, val in enumerate(eventtime[1]):
+                if val.isalpha():
+                    splitTime = [int(x) for x in eventtime[1][:index].split(":")]
+                    hour = splitTime[0]
+                    minute = 0
+                    if len(splitTime) >= 2: # Seconds and further will be ignored
+                        minute = splitTime[1]
+                    tzarg = pytz.timezone(timezones[eventtime[1][index:].upper()])
+                    today = pendulum.today(tzarg)
+                    daysUntil = (eventtime[0] - today.weekday() + 7) % 7
+                    newDate = today.add(days = daysUntil, hours = hour, minutes = minute)
+                    eventtime = datetime.datetime.fromtimestamp(newDate.timestamp(), newDate.timezone)
+                    break
+            else: # UTC + 1 day
+                today = datetime.datetime.now(datetime.timezone.utc).replace(hour = 0, minute = 0, second = 0, microsecond = 0)
+                eventtime[0] += 1
+                eventtime[1] = float(eventtime[1])
+                if eventtime[1] < 0:
+                    eventtime[0] = (eventtime[0] - 1) % 7
+                eventtime[1] %= 24
+                daysUntil = (eventtime[0] - today.weekday() + 7) % 7
+                eventtime = today + datetime.timedelta(days = daysUntil, hours = eventtime[1])
+        except:
+            await interaction.response.send_message("Invalid time provided.", ephemeral=True)
+            return
+        return eventtime
+
+class ParticipantsTransformer(app_commands.Transformer):
+    async def transform(self, interaction: discord.Interaction, participants: str) -> typing.Set[int]:
+        output = set()
+        users = [interaction.guild.get_member(int(x)) for x in re.findall(r'<@!?(\d+)>', participants)]
+        roles = [interaction.guild.get_role(int(x)) for x in re.findall(r'<@&(\d+)>', participants)]
+        output = set(users)
+        for role in roles:
+            if role.mentionable:
+                for member in role.members:
+                    output.add(member.id)
+        return output
+
 class Scheduler(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.checkForEvents.start()
 
     @tasks.loop(seconds=60.0)
     async def checkForEvents(self):
+        print("Checking")
         currentTime = datetime.datetime.now(datetime.timezone.utc)
         currentTime = currentTime.replace(second = 0, microsecond = 0)
         events = database.findEventsInMultiple(currentTime)
@@ -31,28 +118,16 @@ class Scheduler(commands.Cog):
                     "color" : 7855479,
                     "author" : {
                         "name" : ", ".join(titlestring) + " Event Reminder" if len(titlestring) != 0 else "Event Reminder",
-                        "icon_url" : str(self.bot.user.avatar_url)
-                    },
-                    "fields" : [
-                        {
-                            "name" : "Event Name",
-                            "value" : "Event"
-                        },
-                        {
-                            "name" : "Time",
-                            "value" : "Placeholder"
-                        },
-                        {
-                            "name" : "Participants",
-                            "value" : "None"
-                        }
-                    ]
+                        "icon_url" : str(self.bot.user.avatar)
+                    }
                 }
-                embed["fields"][0]["value"] = event[2]
-                embed["fields"][1]["value"] = f"<t:{int(event[3].timestamp())}>"
-                embed["fields"][2]["value"] = " ".join([(await self.bot.fetch_user(x[0])).mention for x in database.getAcceptedInvites(event[0])])
-                message = await self.bot.get_channel(event[4]).fetch_message(event[5])
-                await message.reply(" ".join(self.bot.get_user(x[0]).mention for x in reminders), embed = discord.Embed.from_dict(embed))
+                print("Got here")
+                thread: discord.Thread = self.bot.get_channel(event[5])
+                print("Now here", thread)
+                if thread == None:
+                    message = await self.bot.get_channel(event[4]).fetch_message(event[5])
+                    thread = await message.create_thread(name = "Event Reminders")
+                await thread.send(" ".join(self.bot.get_user(x[0]).mention for x in reminders), embed = discord.Embed.from_dict(embed))
             if timediff <= datetime.timedelta():
                 database.deleteEvent(event[0])
 
@@ -60,7 +135,7 @@ class Scheduler(commands.Cog):
     async def beforeStartLoopEvents(self):
         await self.bot.wait_until_ready()
 
-    @commands.command()
+    @commands.hybrid_command()
     @commands.guild_only()
     async def reminderconfig(self, ctx, times: commands.Greedy[float]):
         times = [i for i in times if i % .25 == 0 and i >= 0 and i <= 24]
@@ -73,83 +148,39 @@ class Scheduler(commands.Cog):
         if database.updateReminderSettings(ctx.author.id, times):
             await ctx.send(responsestr)
 
-    @commands.command()
+    @app_commands.command()
     @commands.guild_only()
-    async def schedule(self, ctx, eventName: str, eventTime: str):
-        weekdays = {
-            'monday' : 0, 'mon' : 0, 'tuesday' : 1, 'tues' : 1, 'tue' : 1, 'wednesday' : 2, 'wed' : 2, 'thursday' : 3, 'thurs' : 3, 'thu' : 3,
-            'friday' : 4, 'fri' : 4, 'saturday' : 5, 'sat' : 5, 'sunday' : 6, 'sun' : 6
-        }
-        timezones = { # Although it is more correct to leave the standard times alone, many people don't know the difference between EST and EST
-            'EST' : 'US/Eastern', 'EDT' : 'US/Eastern', 'ET' : 'US/Eastern',
-            'CST' : 'US/Central', 'CDT' : 'US/Central', 'CT' : 'US/Central',
-            'MST' : 'US/Mountain', 'MDT' : 'US/Mountain', 'MT' : 'US/Mountain',
-            'PST' : 'US/Pacific', 'PDT' : 'US/Pacific', 'PT' : 'US/Pacific'
-        }
-        message = ctx.message
-        organizer = ctx.author.id
-        today = datetime.datetime.now(datetime.timezone.utc).replace(hour = 0, minute = 0, second = 0, microsecond = 0)
-        if eventName == "":
-            await ctx.send("No event name provided")
+    async def schedule(self, ctx: discord.Interaction, eventname: str, eventtime: app_commands.Transform[datetime.datetime, EventTimeTransformer], participants: app_commands.Transform[typing.Set[int], ParticipantsTransformer]):
+        organizer = ctx.user.id
+        if eventname == "":
+            await ctx.response.send_message("No event name provided", ephemeral=True)
             return
-        eventTime = eventTime.split(",")
-        eventTime[0] = weekdays[eventTime[0].lower()]
-        try:
-            for index, val in enumerate(eventTime[1]):
-                if val.isalpha():
-                    splitTime = [int(x) for x in eventTime[1][:index].split(":")]
-                    hour = splitTime[0]
-                    minute = 0
-                    if len(splitTime) >= 2: # Seconds and further will be ignored
-                        minute = splitTime[1]
-                    tzarg = pytz.timezone(timezones[eventTime[1][index:].upper()])
-                    today = pendulum.today(tzarg)
-                    daysUntil = (eventTime[0] - today.weekday() + 7) % 7
-                    newDate = today.add(days = daysUntil, hours = hour, minutes = minute)
-                    eventTime = datetime.datetime.fromtimestamp(newDate.timestamp(), newDate.timezone)
-                    break
-            else: # UTC + 1 day
-                today = datetime.datetime.now(datetime.timezone.utc).replace(hour = 0, minute = 0, second = 0, microsecond = 0)
-                eventTime[0] += 1
-                eventTime[1] = float(eventTime[1])
-                if eventTime[1] < 0:
-                    eventTime[0] = (eventTime[0] - 1) % 7
-                eventTime[1] %= 24
-                daysUntil = (eventTime[0] - today.weekday() + 7) % 7
-                eventTime = today + datetime.timedelta(days = daysUntil, hours = eventTime[1])
-        except:
-            await ctx.send("Invalid time provided.")
+        if eventtime <= datetime.datetime.now(datetime.timezone.utc):
+            await ctx.response.send_message("You cannot schedule an event in the past.")
             return
-        if eventTime <= datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes = 15):
-            if eventTime <= datetime.datetime.now(datetime.timezone.utc) and daysUntil <= 1:
-                eventTime = eventTime + datetime.timedelta(days = 7)
-            else:
-                await ctx.send("You cannot schedule an event that is 15 minutes or less away.")
-                return
-        participants = set(x.id for x in message.mentions).union(
-                    set(member.id for role in message.role_mentions
-                        for member in role.members)
-                    )
         if len(participants) == 0:
-            await ctx.send("No participants provided.")
+            await ctx.response.send_message("No participants provided.", ephemeral=True)
             return
-        if database.eventExists(organizer, eventName):
-            await ctx.send("You already have an event with the same name.")
+        if len(participants) > 50:
+            await ctx.response.send_message("Only up to 50 members can be added in an event.", ephemeral=True)
+            return
+        if database.eventExists(organizer, eventname):
+            await ctx.response.send_message("You already have an event with the same name.", ephemeral=True)
             return
         embed = {
             "color" : 7855479,
             "author" : {
                 "name" : "Event Invite",
-                "icon_url" : str(self.bot.user.avatar_url)
+                "icon_url" : str(self.bot.user.avatar)
             },
             "fields" : [
                 {
                     "name" : "Event Name",
-                    "value" : eventName
+                    "value" : eventname
                 },
                 {
                     "name" : "Time",
-                    "value" : f"<t:{int(eventTime.timestamp())}>"
+                    "value" : f"<t:{int(eventtime.timestamp())}>"
                 },
                 {
                     "name" : "Participants",
@@ -157,20 +188,23 @@ class Scheduler(commands.Cog):
                 },
                 {
                     "name" : "Pending Invites",
-                    "value" : " ".join(self.bot.get_user(x).mention for x in participants)
+                    "value" : " ".join(x.mention for x in participants)
                 }
             ]
         }
-        sentMsg = await ctx.send(embed = discord.Embed.from_dict(embed))
-        database.createEvent(organizer, eventName, eventTime, participants, sentMsg.channel.id, sentMsg.id)
-        await sentMsg.add_reaction('✅')
-        conflicts = database.findConflicts(participants, eventTime)
+
+        
+
+        await ctx.response.send_message(" ".join(x.mention for x in participants), embed = discord.Embed.from_dict(embed), view = InviteView())
+        sentMsg = await ctx.original_response()
+        database.createEvent(organizer, eventname, eventtime, [x.id for x in participants], sentMsg.channel.id, sentMsg.id)
+        conflicts = database.findConflicts([x.id for x in participants], eventtime)
         if len(conflicts) != 0:
             conflictsEmbed = {
                 "color" : 0xff6961,
                 "author" : {
                     "name" : "Timing Conflicts Found",
-                    "icon_url" : str(self.bot.user.avatar_url)
+                    "icon_url" : str(self.bot.user.avatar)
                 },
                 "description" : " ".join(self.bot.get_user(x[0]).mention for x in conflicts)
             }
@@ -185,14 +219,23 @@ class Scheduler(commands.Cog):
 
     @commands.command()
     @commands.guild_only()
-    async def cancel(self, ctx, eventName: str):
-        organizer = ctx.author.id
-        if database.cancelEvent(organizer, eventName):
-            await ctx.message.add_reaction('✅')
-        else:
-            await ctx.send(f'You are not an organizer of an event titled {eventName}.')
+    async def debug(self, ctx):
+        messageIDs = database.getInviteMessageIDs()
+        for messageID in messageIDs:
+            channel = await self.bot.fetch_channel(messageID[0])
+            message = await channel.fetch_message(messageID[1])
+            if len(message.components) == 0: message.edit(view = InviteView())
 
-    @commands.command()
+    @app_commands.command()
+    @commands.guild_only()
+    async def cancel(self, ctx: discord.Interaction, eventname: str):
+        organizer = ctx.user.id
+        if database.cancelEvent(organizer, eventname):
+            await ctx.response.send_message(f'Event titled {eventname} deleted.')
+        else:
+            await ctx.response.send_message(f'You are not an organizer of an event titled {eventname}.')
+
+    @commands.hybrid_command()
     @commands.guild_only()
     async def upcoming(self, ctx):
         upcomingEvents = database.getUpcoming(ctx.author.id)
@@ -201,7 +244,7 @@ class Scheduler(commands.Cog):
             "color" : 7855479,
             "author" : {
                 "name" : "Upcoming Events",
-                "icon_url" : str(self.bot.user.avatar_url)
+                "icon_url" : str(self.bot.user.avatar)
             },
             "description" : "No upcoming events" if len(upcomingEvents) == 0 else "\n".join([])
         }
@@ -210,23 +253,24 @@ class Scheduler(commands.Cog):
         else:
             formattedEvents = []
             for i in upcomingEvents:
-                timediff = (i[3] - datetime.datetime.now())
-                formattedEvents.append(f"[{i[2]}](https://discord.com/channels/{ctx.guild.id}/{i[4]}/{i[5]}): <t:{int(i[3].timestamp())}> (in {timediff.days * 24 + timediff.seconds//3600} hours)")
+                adjustedTime = i[3].replace(tzinfo = datetime.timezone.utc)
+                timediff = (adjustedTime - datetime.datetime.now(datetime.timezone.utc))
+                formattedEvents.append(f"[{i[2]}](https://discord.com/channels/{ctx.guild.id}/{i[4]}/{i[5]}): <t:{int(adjustedTime.timestamp())}> (in {timediff.days * 24 + timediff.seconds//3600} hours)")
             embed["description"] = "\n".join(formattedEvents)
         await ctx.send(embed = discord.Embed.from_dict(embed))
 
     @commands.command()
     @commands.guild_only()
-    async def invite(self, ctx, eventName: str):
+    async def invite(self, ctx, eventname: str):
         message = ctx.message
         participants = [x.id for x in message.mentions]
         if len(participants) == 0:
             await message.channel.send("No participants provided.")
             return 0
         organizer = ctx.author.id
-        eventInfo = database.getEventFromName(organizer, eventName)
+        eventInfo = database.getEventFromName(organizer, eventname)
         if len(eventInfo) == 0:
-            await ctx.send(f"You are not an organizer of an event titled {eventName}.")
+            await ctx.send(f"You are not an organizer of an event titled {eventname}.")
             return
         eventInfo = eventInfo[0]
         numAdded = database.addInvite(organizer, eventInfo[0], participants)
@@ -240,12 +284,12 @@ class Scheduler(commands.Cog):
                 "color" : 7855479,
                 "author" : {
                     "name" : "Event Invite",
-                    "icon_url" : str(self.bot.user.avatar_url)
+                    "icon_url" : str(self.bot.user.avatar)
                 },
                 "fields" : [
                     {
                         "name" : "Event Name",
-                        "value" : eventName
+                        "value" : eventname
                     },
                     {
                         "name" : "Time",
@@ -265,85 +309,8 @@ class Scheduler(commands.Cog):
         else:
             await message.channel.send("No new participants invited.")
     
-    @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload):
-        message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
-        emoji = str(payload.emoji)
-        if message.author == self.bot.user and emoji == '✅': #Event Invites
-            eventInfo = database.getEventFromInvite(message.id)
-            if len(eventInfo) != 0:
-                eventInfo = eventInfo[0]
-                eventName = eventInfo[2]
-                eventTime = eventInfo[3]
-                if database.acceptInvite(eventInfo[0], payload.user_id): #Valid user accepted invite
-                    participants = [x[0] for x in database.getAcceptedInvites(eventInfo[0])]
-                    pending = [x[0] for x in database.getPendingInvites(eventInfo[0])]
-                    embed = {
-                        "color" : 7855479,
-                        "author" : {
-                            "name" : "Event Invite",
-                            "icon_url" : str(self.bot.user.avatar_url)
-                        },
-                        "fields" : [
-                            {
-                                "name" : "Event Name",
-                                "value" : eventName
-                            },
-                            {
-                                "name" : "Time",
-                                "value" : f"<t:{int(eventTime.timestamp())}>"
-                            },
-                            {
-                                "name" : "Participants",
-                                "value" : "None" if len(participants) == 0 else " ".join(self.bot.get_user(x).mention for x in participants)
-                            },
-                            {
-                                "name" : "Pending Invites",
-                                "value" : "None" if len(pending) == 0 else " ".join(self.bot.get_user(x).mention for x in pending)
-                            }
-                        ]
-                    }
-                    await message.edit(embed = discord.Embed.from_dict(embed))
-        
-    @commands.Cog.listener()
-    async def on_raw_reaction_remove(self, payload):
-        message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
-        emoji = str(payload.emoji)
-        if message.author == self.bot.user and emoji == '✅': #Event Invites
-            eventInfo = database.getEventFromInvite(message.id)
-            if len(eventInfo) != 0:
-                eventInfo = eventInfo[0]
-                eventName = eventInfo[2]
-                eventTime = eventInfo[3]
-                if database.unacceptInvite(eventInfo[0], payload.user_id): #Valid user unaccepted invite
-                    participants = [x[0] for x in database.getAcceptedInvites(eventInfo[0])]
-                    pending = [x[0] for x in database.getPendingInvites(eventInfo[0])]
-                    embed = {
-                        "color" : 7855479,
-                        "author" : {
-                            "name" : "Event Invite",
-                            "icon_url" : str(self.bot.user.avatar_url)
-                        },
-                        "fields" : [
-                            {
-                                "name" : "Event Name",
-                                "value" : eventName
-                            },
-                            {
-                                "name" : "Time",
-                                "value" : f"<t:{int(eventTime.timestamp())}>"
-                            },
-                            {
-                                "name" : "Participants",
-                                "value" : "None" if len(participants) == 0 else " ".join(self.bot.get_user(x).mention for x in participants)
-                            },
-                            {
-                                "name" : "Pending Invites",
-                                "value" : "None" if len(pending) == 0 else " ".join(self.bot.get_user(x).mention for x in pending)
-                            }
-                        ]
-                    }
-                    await message.edit(embed = discord.Embed.from_dict(embed))
+    async def cog_load(self):
+        self.bot.add_view(InviteView())
 
-def setup(bot):
-    bot.add_cog(Scheduler(bot))
+async def setup(bot):
+    await bot.add_cog(Scheduler(bot))

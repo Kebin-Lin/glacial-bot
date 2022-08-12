@@ -38,6 +38,11 @@ def createEvent(userID, eventName, eventDateTime, attendeeList, channelID, messa
     return True
 
 @reconnect
+def getInviteMessageIDs():
+    cursor.execute('''SELECT channelID, messageID FROM events''')
+    return cursor.fetchall()
+
+@reconnect
 def addInvite(userID, eventID, attendeeList):
     numAdded = 0
     for attendeeID in attendeeList:    

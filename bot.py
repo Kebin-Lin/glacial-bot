@@ -1,5 +1,6 @@
 import os, math, asyncio, random, subprocess, datetime, traceback, sys
 import discord
+import typing
 from discord.ext import tasks, commands
 from util import database, extrafuncs
 
@@ -30,7 +31,7 @@ async def helpFunc(ctx, cmd: str = None):
         "color" : 7855479,
         "author" : {
             "name" : "Command List",
-            "icon_url" : str(bot.user.avatar_url)
+            "icon_url" : str(bot.user.avatar)
         },
         "fields" : []
     }
@@ -124,6 +125,43 @@ COMMAND_SET = {
 
 print("Starting Bot")
 
+@bot.command()
+@commands.guild_only()
+async def sync(ctx: commands.Context, guilds: commands.Greedy[discord.Object], spec: typing.Optional[typing.Literal["~", "*", "^"]] = None) -> None:
+    if ctx.author.id != 149328493740556288:
+        await ctx.send(f"You do not have access to this command.")
+        return
+    if not guilds:
+        if spec == "~":
+            botTesting = discord.Object(id = 682341452184813599)
+            bot.tree.copy_global_to(guild=botTesting)
+            synced = await ctx.bot.tree.sync(guild=ctx.guild)
+        elif spec == "*":
+            ctx.bot.tree.copy_global_to(guild=ctx.guild)
+            synced = await ctx.bot.tree.sync(guild=ctx.guild)
+        elif spec == "^":
+            ctx.bot.tree.clear_commands(guild=ctx.guild)
+            await ctx.bot.tree.sync(guild=ctx.guild)
+            synced = []
+        else:
+            synced = await ctx.bot.tree.sync()
+
+        await ctx.send(
+            f"Synced {len(synced)} commands {'globally' if spec is None else 'to the current guild.'}"
+        )
+        return
+
+    ret = 0
+    for guild in guilds:
+        try:
+            await ctx.bot.tree.sync(guild=guild)
+        except discord.HTTPException:
+            pass
+        else:
+            ret += 1
+
+    await ctx.send(f"Synced the tree to {ret}/{len(guilds)}.")
+
 @bot.event
 async def on_ready():
     print(f'Logged on as {bot.user}')
@@ -133,8 +171,12 @@ async def on_ready():
 
 extensions = ["cogs.CheckPing", "cogs.Scheduler", "cogs.Calculator", "cogs.FlagRace"]
 
-if __name__ == "__main__":
-    for i in extensions:
-        bot.load_extension(i)
 
-bot.run(os.environ["token"])
+async def main():
+    async with bot:
+        for i in extensions:
+            await bot.load_extension(i)
+        await bot.start(os.environ["token"])
+        
+if __name__ == "__main__":
+    asyncio.run(main())
