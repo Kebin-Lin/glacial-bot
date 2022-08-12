@@ -108,7 +108,11 @@ class Scheduler(commands.Cog):
                 view.clear_items()
                 view.stop()
                 await message.edit(view = view)
-                await thread.edit(auto_archive_duration=60)
+                if thread != None:
+                    try:
+                        await thread.edit(auto_archive_duration=60)
+                    except: # Someone else may have created a thread first
+                        pass
                 database.deleteEvent(event[0])
 
     @checkForEvents.before_loop
