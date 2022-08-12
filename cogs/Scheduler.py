@@ -1,4 +1,5 @@
 import datetime
+import enum
 from time import time
 import typing
 import re
@@ -8,6 +9,15 @@ import discord
 from discord import app_commands
 from discord.ext import tasks, commands
 from util import database, extrafuncs
+
+class Weekdays(enum.Enum):
+    Monday = 0
+    Tuesday = 1
+    Wednesday = 2
+    Thursday = 3
+    Friday = 4
+    Saturday = 5
+    Sunday = 6
 
 class InviteView(discord.ui.View):
 
@@ -19,8 +29,6 @@ class InviteView(discord.ui.View):
         eventInfo = database.getEventFromInvite(interaction.message.id)
         if len(eventInfo) != 0:
             eventInfo = eventInfo[0]
-            eventname = eventInfo[2]
-            eventtime = eventInfo[3]
         updated = False
         if database.acceptInvite(eventInfo[0], interaction.user.id):
             updated = True
@@ -37,47 +45,17 @@ class InviteView(discord.ui.View):
             await interaction.response.send_message("You were not invited to this event.", ephemeral = True)
 
 class EventTimeTransformer(app_commands.Transformer):
-    async def transform(self, interaction: discord.Interaction, eventtime: str) -> datetime.datetime:
-        weekdays = {
-            'monday' : 0, 'mon' : 0, 'tuesday' : 1, 'tues' : 1, 'tue' : 1, 'wednesday' : 2, 'wed' : 2, 'thursday' : 3, 'thurs' : 3, 'thu' : 3,
-            'friday' : 4, 'fri' : 4, 'saturday' : 5, 'sat' : 5, 'sunday' : 6, 'sun' : 6
-        }
-        timezones = { # Although it is more correct to leave the standard times alone, many people don't know the difference between EST and EST
-            'EST' : 'US/Eastern', 'EDT' : 'US/Eastern', 'ET' : 'US/Eastern',
-            'CST' : 'US/Central', 'CDT' : 'US/Central', 'CT' : 'US/Central',
-            'MST' : 'US/Mountain', 'MDT' : 'US/Mountain', 'MT' : 'US/Mountain',
-            'PST' : 'US/Pacific', 'PDT' : 'US/Pacific', 'PT' : 'US/Pacific'
-        }
-        today = datetime.datetime.now(datetime.timezone.utc).replace(hour = 0, minute = 0, second = 0, microsecond = 0)
-        eventtime = [x.strip() for x in eventtime.split(",")]
-        try:
-            eventtime[0] = weekdays[eventtime[0].lower()]
-            for index, val in enumerate(eventtime[1]):
-                if val.isalpha():
-                    splitTime = [int(x) for x in eventtime[1][:index].split(":")]
-                    hour = splitTime[0]
-                    minute = 0
-                    if len(splitTime) >= 2: # Seconds and further will be ignored
-                        minute = splitTime[1]
-                    tzarg = pytz.timezone(timezones[eventtime[1][index:].upper()])
-                    today = pendulum.today(tzarg)
-                    daysUntil = (eventtime[0] - today.weekday() + 7) % 7
-                    newDate = today.add(days = daysUntil, hours = hour, minutes = minute)
-                    eventtime = datetime.datetime.fromtimestamp(newDate.timestamp(), newDate.timezone)
-                    break
-            else: # UTC + 1 day
-                today = datetime.datetime.now(datetime.timezone.utc).replace(hour = 0, minute = 0, second = 0, microsecond = 0)
-                eventtime[0] += 1
-                eventtime[1] = float(eventtime[1])
-                if eventtime[1] < 0:
-                    eventtime[0] = (eventtime[0] - 1) % 7
-                eventtime[1] %= 24
-                daysUntil = (eventtime[0] - today.weekday() + 7) % 7
-                eventtime = today + datetime.timedelta(days = daysUntil, hours = eventtime[1])
-        except:
-            await interaction.response.send_message("Invalid time provided.", ephemeral=True)
-            return
-        return eventtime
+    async def transform(self, interaction: discord.Interaction, eventtime: str) -> typing.List[str]:
+        eventtime = eventtime.upper()
+        if "AM" in eventtime:
+            return [x.strip() for x in eventtime.partition("AM")]
+        if "PM" in eventtime:
+            return [x.strip() for x in eventtime.partition("PM")]
+        for index, val in enumerate(eventtime):
+            if val.isalpha():
+                return [eventtime[:index], eventtime[index:]]
+        else:
+            return [eventtime]
 
 class ParticipantsTransformer(app_commands.Transformer):
     async def transform(self, interaction: discord.Interaction, participants: str) -> typing.Set[int]:
@@ -151,9 +129,49 @@ class Scheduler(commands.Cog):
             await ctx.send(responsestr)
 
     @app_commands.command(description = "Schedules an event")
-    @app_commands.describe(eventname = "Name of the event", eventtime = "Event time ex: Mon,+3 | Fri,22:00EST", participants = "List of participants, can use mentions or mentionable roles")
+    @app_commands.describe(
+        eventname = "Name of the event",
+        weekday = "Weekday of the event", 
+        eventtime = "Event time ex: +3 | 22:00EST | 12AM PST",
+        participants = "List of participants, can use mentions or mentionable roles"
+    )
     @commands.guild_only()
-    async def schedule(self, ctx: discord.Interaction, eventname: str, eventtime: app_commands.Transform[datetime.datetime, EventTimeTransformer], participants: app_commands.Transform[typing.Set[int], ParticipantsTransformer]):
+    async def schedule(self, ctx: discord.Interaction, eventname: str, weekday: Weekdays, eventtime: app_commands.Transform[typing.List[str], EventTimeTransformer], participants: app_commands.Transform[typing.Set[int], ParticipantsTransformer]):
+        timezones = { # Although it is more correct to leave the standard times alone, many people don't know the difference between EST and EST
+            'EST' : 'US/Eastern', 'EDT' : 'US/Eastern', 'ET' : 'US/Eastern',
+            'CST' : 'US/Central', 'CDT' : 'US/Central', 'CT' : 'US/Central',
+            'MST' : 'US/Mountain', 'MDT' : 'US/Mountain', 'MT' : 'US/Mountain',
+            'PST' : 'US/Pacific', 'PDT' : 'US/Pacific', 'PT' : 'US/Pacific'
+        }
+
+        try:
+            weekdayValue = weekday.value
+            if len(eventtime) >= 2:
+                splitTime = [int(x) for x in eventtime[0].split(":")]
+                hour = splitTime[0]
+                if len(eventtime) == 3 and eventtime[1] == "PM":
+                    hour += 12
+                minute = 0
+                if len(splitTime) >= 2: # Seconds and further will be ignored
+                    minute = splitTime[1]
+                tzarg = pytz.timezone(timezones[eventtime[1].upper()]) if len(eventtime) == 2 else pytz.timezone(timezones[eventtime[2].upper()])
+                today = pendulum.today(tzarg)
+                daysUntil = (weekdayValue - today.weekday() + 7) % 7
+                newDate = today.add(days = daysUntil, hours = hour, minutes = minute)
+                eventtime = datetime.datetime.fromtimestamp(newDate.timestamp(), newDate.timezone)
+            else: # UTC + 1 day
+                today = datetime.datetime.now(datetime.timezone.utc).replace(hour = 0, minute = 0, second = 0, microsecond = 0)
+                weekdayValue += 1
+                eventtime[0] = float(eventtime[0])
+                if eventtime[0] < 0:
+                    weekdayValue = (weekdayValue - 1) % 7
+                eventtime[0] %= 24
+                daysUntil = (weekdayValue - today.weekday() + 7) % 7
+                eventtime = today + datetime.timedelta(days = daysUntil, hours = eventtime[0])
+        except:
+            await ctx.response.send_message("Invalid time provided.", ephemeral=True)
+            return
+
         organizer = ctx.user.id
         if eventname == "":
             await ctx.response.send_message("No event name provided", ephemeral=True)
@@ -196,11 +214,10 @@ class Scheduler(commands.Cog):
             ]
         }
 
-        
-
         await ctx.response.send_message(" ".join(x.mention for x in participants), embed = discord.Embed.from_dict(embed), view = InviteView())
         sentMsg = await ctx.original_response()
         database.createEvent(organizer, eventname, eventtime, [x.id for x in participants], sentMsg.channel.id, sentMsg.id)
+        
         conflicts = database.findConflicts([x.id for x in participants], eventtime)
         if len(conflicts) != 0:
             conflictsEmbed = {
