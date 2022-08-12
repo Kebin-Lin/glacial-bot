@@ -49,7 +49,7 @@ class EventTimeTransformer(app_commands.Transformer):
             'PST' : 'US/Pacific', 'PDT' : 'US/Pacific', 'PT' : 'US/Pacific'
         }
         today = datetime.datetime.now(datetime.timezone.utc).replace(hour = 0, minute = 0, second = 0, microsecond = 0)
-        eventtime = eventtime.split(",")
+        eventtime = [x.strip() for x in eventtime.split(",")]
         try:
             eventtime[0] = weekdays[eventtime[0].lower()]
             for index, val in enumerate(eventtime[1]):
@@ -150,7 +150,8 @@ class Scheduler(commands.Cog):
         if database.updateReminderSettings(ctx.author.id, times):
             await ctx.send(responsestr)
 
-    @app_commands.command()
+    @app_commands.command(description = "Schedules an event")
+    @app_commands.describe(eventname = "Name of the event", eventtime = "Event time ex: Mon,+3 | Fri,22:00EST", participants = "List of participants, can use mentions or mentionable roles")
     @commands.guild_only()
     async def schedule(self, ctx: discord.Interaction, eventname: str, eventtime: app_commands.Transform[datetime.datetime, EventTimeTransformer], participants: app_commands.Transform[typing.Set[int], ParticipantsTransformer]):
         organizer = ctx.user.id
