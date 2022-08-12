@@ -102,6 +102,8 @@ class Scheduler(commands.Cog):
         currentTime = currentTime.replace(second = 0, microsecond = 0)
         events = database.findEventsInMultiple(currentTime)
         for event in events:
+            message = await self.bot.get_channel(event[4]).fetch_message(event[5])
+            thread: discord.Thread = self.bot.get_channel(event[5])
             timediff = event[6]
             reminders = database.getReminders(event[0], timediff)
             if len(reminders) != 0:
@@ -120,14 +122,15 @@ class Scheduler(commands.Cog):
                         "icon_url" : str(self.bot.user.avatar)
                     }
                 }
-                print("Got here")
-                thread: discord.Thread = self.bot.get_channel(event[5])
-                print("Now here", thread)
                 if thread == None:
-                    message = await self.bot.get_channel(event[4]).fetch_message(event[5])
                     thread = await message.create_thread(name = "Event Reminders")
                 await thread.send(" ".join(self.bot.get_user(x[0]).mention for x in reminders), embed = discord.Embed.from_dict(embed))
             if timediff <= datetime.timedelta():
+                view: discord.ui.View = discord.ui.View.from_message(message)
+                view.clear_items()
+                view.stop()
+                await message.edit(view = view)
+                await thread.edit(auto_archive_duration=60)
                 database.deleteEvent(event[0])
 
     @checkForEvents.before_loop
