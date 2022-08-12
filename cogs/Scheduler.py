@@ -98,7 +98,6 @@ class Scheduler(commands.Cog):
 
     @tasks.loop(seconds=60.0)
     async def checkForEvents(self):
-        print("Checking")
         currentTime = datetime.datetime.now(datetime.timezone.utc)
         currentTime = currentTime.replace(second = 0, microsecond = 0)
         events = database.findEventsInMultiple(currentTime)
@@ -216,15 +215,6 @@ class Scheduler(commands.Cog):
             await ctx.send("Missing field(s). Usage: !gb schedule <event name> <event time (Monday,+2 for Monday, Reset + 2 hours)> <participant1> <participant2> ...")
         else:
             print(error)
-
-    @commands.command()
-    @commands.guild_only()
-    async def debug(self, ctx):
-        messageIDs = database.getInviteMessageIDs()
-        for messageID in messageIDs:
-            channel = await self.bot.fetch_channel(messageID[0])
-            message = await channel.fetch_message(messageID[1])
-            if len(message.components) == 0: message.edit(view = InviteView())
 
     @app_commands.command()
     @commands.guild_only()
