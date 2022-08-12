@@ -1,4 +1,4 @@
-git+git://github.com/Rapptz/discord.py.git@gf1ec0919
+git+https://github.com/Rapptz/discord.py@e269904b2645c9bd7ca95237ba5a50e70867ce0b
 pendulum==2.1.2
 psycopg2-binary==2.9.3
 pytz==2022.1
