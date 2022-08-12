@@ -96,12 +96,12 @@ class Scheduler(commands.Cog):
                 embed = {
                     "color" : 7855479,
                     "author" : {
-                        "name" : event[2] + " " + ", ".join(titlestring) + " Event Reminder" if len(titlestring) != 0 else event[2] + " Event Reminder",
+                        "name" : ", ".join(titlestring) + f" {event[2]} Reminder" if len(titlestring) != 0 else f"{event[2]} Reminder",
                         "icon_url" : str(self.bot.user.avatar)
                     }
                 }
                 if thread == None:
-                    thread = await message.create_thread(name = "Event Reminders")
+                    thread = await message.create_thread(name = f"{event[2]} Reminders")
                 await thread.send(" ".join(self.bot.get_user(x[0]).mention for x in reminders), embed = discord.Embed.from_dict(embed))
             if timediff <= datetime.timedelta():
                 view: discord.ui.View = discord.ui.View.from_message(message)
