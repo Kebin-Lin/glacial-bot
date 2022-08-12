@@ -149,8 +149,11 @@ class Scheduler(commands.Cog):
             if len(eventtime) >= 2:
                 splitTime = [int(x) for x in eventtime[0].split(":")]
                 hour = splitTime[0]
-                if len(eventtime) == 3 and eventtime[1] == "PM":
-                    hour += 12
+                if len(eventtime) == 3:
+                    if eventtime[1] == "PM" and hour != 12:
+                        hour += 12
+                    if eventtime[1] == "AM" and hour == 12:
+                        hour = 0
                 minute = 0
                 if len(splitTime) >= 2: # Seconds and further will be ignored
                     minute = splitTime[1]
