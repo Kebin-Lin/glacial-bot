@@ -58,7 +58,7 @@ class EventTimeTransformer(app_commands.Transformer):
             return [eventtime]
 
 class ParticipantsTransformer(app_commands.Transformer):
-    async def transform(self, interaction: discord.Interaction, participants: str) -> typing.Set[int]:
+    async def transform(self, interaction: discord.Interaction, participants: str) -> typing.Set[discord.Member]:
         output = set()
         users = [interaction.guild.get_member(int(x)) for x in re.findall(r'<@!?(\d+)>', participants)]
         roles = [interaction.guild.get_role(int(x)) for x in re.findall(r'<@&(\d+)>', participants)]
@@ -66,7 +66,7 @@ class ParticipantsTransformer(app_commands.Transformer):
         for role in roles:
             if role.mentionable:
                 for member in role.members:
-                    output.add(member.id)
+                    output.add(interaction.guild.get_member(member.id))
         return output
 
 class Scheduler(commands.Cog):
@@ -96,7 +96,7 @@ class Scheduler(commands.Cog):
                 embed = {
                     "color" : 7855479,
                     "author" : {
-                        "name" : ", ".join(titlestring) + " Event Reminder" if len(titlestring) != 0 else "Event Reminder",
+                        "name" : event[2] + " " + ", ".join(titlestring) + " Event Reminder" if len(titlestring) != 0 else event[2] + " Event Reminder",
                         "icon_url" : str(self.bot.user.avatar)
                     }
                 }
@@ -140,7 +140,7 @@ class Scheduler(commands.Cog):
         participants = "List of participants, can use mentions or mentionable roles"
     )
     @commands.guild_only()
-    async def schedule(self, ctx: discord.Interaction, eventname: str, weekday: Weekdays, eventtime: app_commands.Transform[typing.List[str], EventTimeTransformer], participants: app_commands.Transform[typing.Set[int], ParticipantsTransformer]):
+    async def schedule(self, ctx: discord.Interaction, eventname: str, weekday: Weekdays, eventtime: app_commands.Transform[typing.List[str], EventTimeTransformer], participants: app_commands.Transform[typing.Set[discord.Member], ParticipantsTransformer]):
         timezones = { # Although it is more correct to leave the standard times alone, many people don't know the difference between EST and EST
             'EST' : 'US/Eastern', 'EDT' : 'US/Eastern', 'ET' : 'US/Eastern',
             'CST' : 'US/Central', 'CDT' : 'US/Central', 'CT' : 'US/Central',
