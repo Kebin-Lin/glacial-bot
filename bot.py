@@ -124,7 +124,7 @@ COMMAND_SET = {
     },
     'invite' : {
         'helpmsg' : 'Invites user(s) to an event (ignores already invited participants)',
-        'usage' : '!gb invite <event name> <participants>'
+        'usage' : '/gb invite <event name> <participants>'
     }
 }
 

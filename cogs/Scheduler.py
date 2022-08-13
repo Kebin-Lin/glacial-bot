@@ -10,6 +10,8 @@ from discord import app_commands
 from discord.ext import tasks, commands
 from util import database, extrafuncs
 
+MAX_NUM_PARTICIPANTS = 50
+
 class Weekdays(enum.Enum):
     Monday = 0
     Tuesday = 1
@@ -189,8 +191,8 @@ class Scheduler(commands.Cog):
         if len(participants) == 0:
             await ctx.response.send_message("No participants provided.", ephemeral=True)
             return
-        if len(participants) > 50:
-            await ctx.response.send_message("Only up to 50 members can be added in an event.", ephemeral=True)
+        if len(participants) > MAX_NUM_PARTICIPANTS:
+            await ctx.response.send_message(f"Only up to {MAX_NUM_PARTICIPANTS} members can be added in an event.", ephemeral=True)
             return
         if database.eventExists(organizer, eventname):
             await ctx.response.send_message("You already have an event with the same name.", ephemeral=True)
@@ -277,55 +279,41 @@ class Scheduler(commands.Cog):
             embed["description"] = "\n".join(formattedEvents)
         await ctx.send(embed = discord.Embed.from_dict(embed))
 
-    @commands.command()
+    @app_commands.command()
     @commands.guild_only()
-    async def invite(self, ctx, eventname: str):
-        message = ctx.message
-        participants = [x.id for x in message.mentions]
+    async def invite(self, ctx: discord.Interaction, eventname: str, participants: app_commands.Transform[typing.Set[discord.Member], ParticipantsTransformer]):
         if len(participants) == 0:
-            await message.channel.send("No participants provided.")
-            return 0
-        organizer = ctx.author.id
+            await ctx.response.send_message("No participants provided.", ephemeral=True)
+            return
+        organizer = ctx.user.id
         eventInfo = database.getEventFromName(organizer, eventname)
         if len(eventInfo) == 0:
-            await ctx.send(f"You are not an organizer of an event titled {eventname}.")
+            await ctx.response.send_message(f"You are not an organizer of an event titled {eventname}.", ephemeral=True)
             return
         eventInfo = eventInfo[0]
-        numAdded = database.addInvite(organizer, eventInfo[0], participants)
+        accepted = [x[0] for x in database.getAcceptedInvites(eventInfo[0])]
+        pending = [x[0] for x in database.getPendingInvites(eventInfo[0])]
+        previouslyInvited = set(accepted).union(set(pending))
+        new = []
+        for i in participants:
+            if i.id not in previouslyInvited:
+                new.append(i)
+        if len(new) + len(accepted) + len(pending) > MAX_NUM_PARTICIPANTS:
+            await ctx.response.send_message(f"Only up to {MAX_NUM_PARTICIPANTS} members can be added in an event.", ephemeral=True)
+            return
+        numAdded = database.addInvite(organizer, eventInfo[0], [x.id for x in participants])
         if numAdded != 0:
             originalInvite = await self.bot.get_channel(eventInfo[4]).fetch_message(eventInfo[5])
-            await originalInvite.reply(f"{numAdded} new participant(s) invited.\nClick on the reply to jump to the original invite.")
-            #Update invite message
-            participants = [x[0] for x in database.getAcceptedInvites(eventInfo[0])]
-            pending = [x[0] for x in database.getPendingInvites(eventInfo[0])]
-            embed = {
-                "color" : 7855479,
-                "author" : {
-                    "name" : "Event Invite",
-                    "icon_url" : str(self.bot.user.avatar)
-                },
-                "fields" : [
-                    {
-                        "name" : "Event Name",
-                        "value" : eventname
-                    },
-                    {
-                        "name" : "Time",
-                        "value" : f"<t:{int(eventInfo[3].timestamp())}>"
-                    },
-                    {
-                        "name" : "Participants",
-                        "value" : "None" if len(participants) == 0 else " ".join(self.bot.get_user(x).mention for x in participants)
-                    },
-                    {
-                        "name" : "Pending Invites",
-                        "value" : "None" if len(pending) == 0 else " ".join(self.bot.get_user(x).mention for x in pending)
-                    }
-                ]
-            }
+            embed = originalInvite.embeds[0].to_dict()
+            pendingMentions = " ".join([" ".join(ctx.guild.get_member(x).mention for x in pending), " ".join(x.mention for x in new)])
+            embed["fields"][3]["value"] = pendingMentions
             await originalInvite.edit(embed = discord.Embed.from_dict(embed))
+            acceptButton = discord.ui.Button(label="Jump To Invite", style=discord.ButtonStyle.link, url=originalInvite.jump_url)
+            view = discord.ui.View(timeout = None)
+            view.add_item(acceptButton)
+            await ctx.response.send_message(f"{' '.join(x.mention for x in new)} invited.", view = view)
         else:
-            await message.channel.send("No new participants invited.")
+            await ctx.response.send_message("No new participants invited.", ephemeral=True)
     
     async def cog_load(self):
         self.bot.add_view(InviteView())
