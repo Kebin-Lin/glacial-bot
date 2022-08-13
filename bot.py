@@ -7,8 +7,13 @@ from util import database, extrafuncs
 TEST_MODE = bool(int(os.environ["testMode"]))
 TEST_SERVER_ID = 682341452184813599
 
+class TestCheckTree(discord.app_commands.CommandTree):
+    async def interaction_check(self, interaction: discord.Interaction, /) -> bool:
+        inTestServer = interaction.guild != None and interaction.guild.id == TEST_SERVER_ID
+        return inTestServer if TEST_MODE else not inTestServer
+
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix="!gb ", intents=intents)
+bot = commands.Bot(command_prefix="!gb ", intents=intents, tree_cls=TestCheckTree)
 
 bot.remove_command("help")
 
