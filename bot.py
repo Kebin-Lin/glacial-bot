@@ -120,7 +120,7 @@ COMMAND_SET = {
     },
     'cancel' : {
         'helpmsg' : 'Cancels an event',
-        'usage' : '!gb cancel <event name>'
+        'usage' : '/gb cancel <event name>'
     },
     'invite' : {
         'helpmsg' : 'Invites user(s) to an event (ignores already invited participants)',

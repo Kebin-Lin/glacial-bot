@@ -246,7 +246,8 @@ class Scheduler(commands.Cog):
         else:
             print(error)
 
-    @app_commands.command()
+    @app_commands.command(description = "Cancels an event")
+    @app_commands.describe(eventname = "Name of the event")
     @commands.guild_only()
     async def cancel(self, ctx: discord.Interaction, eventname: str):
         organizer = ctx.user.id
@@ -279,7 +280,11 @@ class Scheduler(commands.Cog):
             embed["description"] = "\n".join(formattedEvents)
         await ctx.send(embed = discord.Embed.from_dict(embed))
 
-    @app_commands.command()
+    @app_commands.command(description = "Invites user(s) to an event (ignores already invited participants)")
+    @app_commands.describe(
+        eventname = "Name of the event",
+        participants = "List of participants, can use mentions or mentionable roles"
+    )
     @commands.guild_only()
     async def invite(self, ctx: discord.Interaction, eventname: str, participants: app_commands.Transform[typing.Set[discord.Member], ParticipantsTransformer]):
         if len(participants) == 0:
