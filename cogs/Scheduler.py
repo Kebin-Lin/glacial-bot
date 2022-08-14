@@ -210,7 +210,7 @@ class Scheduler(commands.Cog):
                 },
                 {
                     "name" : "Time",
-                    "value" : f"<t:{int(eventtime.timestamp())}>"
+                    "value" : f"<t:{int(eventtime.timestamp())}:F>"
                 },
                 {
                     "name" : "Participants",
@@ -276,7 +276,7 @@ class Scheduler(commands.Cog):
             for i in upcomingEvents:
                 adjustedTime = i[3].replace(tzinfo = datetime.timezone.utc)
                 timediff = (adjustedTime - datetime.datetime.now(datetime.timezone.utc))
-                formattedEvents.append(f"[{i[2]}](https://discord.com/channels/{ctx.guild.id}/{i[4]}/{i[5]}): <t:{int(adjustedTime.timestamp())}> (in {timediff.days * 24 + timediff.seconds//3600} hours)")
+                formattedEvents.append(f"[{i[2]}](https://discord.com/channels/{ctx.guild.id}/{i[4]}/{i[5]}): <t:{int(adjustedTime.timestamp())}:F> (in {timediff.days * 24 + timediff.seconds//3600} hours)")
             embed["description"] = "\n".join(formattedEvents)
         await ctx.send(embed = discord.Embed.from_dict(embed))
 
