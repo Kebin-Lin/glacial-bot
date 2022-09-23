@@ -251,10 +251,16 @@ class Scheduler(commands.Cog):
     @commands.guild_only()
     async def cancel(self, ctx: discord.Interaction, eventname: str):
         organizer = ctx.user.id
-        if database.cancelEvent(organizer, eventname):
-            await ctx.response.send_message(f'Event titled {eventname} deleted.')
-        else:
+        eventInfo = database.getEventFromName(organizer, eventname)
+        if len(eventInfo) == 0:
             await ctx.response.send_message(f'You are not an organizer of an event titled {eventname}.')
+        else:
+            eventInfo = eventInfo[0]
+            originalInvite = await self.bot.get_channel(eventInfo[4]).fetch_message(eventInfo[5])
+            database.cancelEvent(organizer, eventname)
+            await originalInvite.delete()
+            await ctx.response.send_message(f'Event titled {eventname} deleted.')
+
 
     @commands.hybrid_command()
     @commands.guild_only()
